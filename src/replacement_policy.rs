@@ -17,13 +17,6 @@ pub struct Lru {
     stack: Vec<Item>,
 }
 
-impl Lru {
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
 impl ReplacementPolicy for Lru {
     fn update_state(&mut self, next: Item) {
         if let Some(index) = self.stack.iter().position(|&i| i == next) {
@@ -31,6 +24,25 @@ impl ReplacementPolicy for Lru {
         }
 
         self.stack.push(next);
+    }
+
+    fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {
+        self.update_state(next);
+        self.stack.remove(0)
+    }
+}
+
+/// The FIFO replacement policy.
+#[derive(Default)]
+pub struct Fifo {
+    stack: Vec<Item>,
+}
+
+impl ReplacementPolicy for Fifo {
+    fn update_state(&mut self, next: Item) {
+        if !self.stack.contains(&next) {
+            self.stack.push(next);
+        }
     }
 
     fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {

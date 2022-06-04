@@ -4,7 +4,7 @@ mod stats;
 mod trace;
 
 pub use cache::Cache;
-pub use replacement_policy::Lru;
+pub use replacement_policy::{Fifo, Lru};
 pub use stats::HitRate;
 pub use trace::{StackDistance, Trace, TraceStat};
 
