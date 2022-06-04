@@ -3,6 +3,7 @@
 use std::collections::HashSet;
 
 use super::replacement_policy::ReplacementPolicy;
+use super::stats::Stat;
 use super::Item;
 
 /// A cache, generic over a replacement policy.
@@ -10,6 +11,7 @@ pub struct Cache<R: ReplacementPolicy> {
     set: HashSet<Item>,
     replacement_policy: R,
     capacity: usize,
+    stat: Vec<Box<dyn Stat>>,
 }
 
 impl<R: ReplacementPolicy> Cache<R> {
@@ -19,7 +21,12 @@ impl<R: ReplacementPolicy> Cache<R> {
             set: HashSet::default(),
             replacement_policy,
             capacity,
+            stat: Vec::default(),
         }
+    }
+
+    pub fn track(&mut self, stat: impl Stat + 'static) {
+        self.stat.push(Box::new(stat));
     }
 
     /// Update the cache after an access to item.
@@ -30,11 +37,22 @@ impl<R: ReplacementPolicy> Cache<R> {
             let to_evict = self
                 .replacement_policy
                 .replace(&self.set, self.capacity, item);
+            for stat in &mut self.stat {
+                stat.update(&self.set, item, Some(to_evict));
+            }
             self.set.remove(&to_evict);
         } else {
             self.replacement_policy.update_state(item);
+            for stat in &mut self.stat {
+                stat.update(&self.set, item, None);
+            }
         }
         self.set.insert(item);
+    }
+
+    /// Get a reference to the list of statistics.
+    pub fn statistics(&self) -> &[Box<dyn Stat>] {
+        self.stat.as_ref()
     }
 }
 
