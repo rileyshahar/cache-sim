@@ -26,11 +26,13 @@ impl<R: ReplacementPolicy> Cache<R> {
     pub fn access(&mut self, item: Item) {
         // we always need to run this, even if not at capacity, so that the replacement policy can
         // update its state
-        let to_evict = self
-            .replacement_policy
-            .replace(&self.set, self.capacity, item);
-        if let Some(to_evict) = to_evict {
+        if self.set.len() >= self.capacity && !self.set.contains(&item) {
+            let to_evict = self
+                .replacement_policy
+                .replace(&self.set, self.capacity, item);
             self.set.remove(&to_evict);
+        } else {
+            self.replacement_policy.update_state(item);
         }
         self.set.insert(item);
     }
@@ -50,9 +52,13 @@ impl<R: ReplacementPolicy> std::fmt::Display for Cache<R> {
                 )?;
             }
         } else {
-            for item in &self.set {
+            for (i, item) in self.set.iter().enumerate() {
                 // prints the number associated with each item in the stack, in order
-                write!(f, "{}", item.0)?;
+                if i == self.set.len() - 1 {
+                    write!(f, "{}", item.0)?;
+                } else {
+                    write!(f, "{}, ", item.0)?;
+                }
             }
         }
 

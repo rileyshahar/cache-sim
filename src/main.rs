@@ -1,20 +1,17 @@
 use cache_sim::{Cache, Item, Lru};
 
+const INPUT: &str = include_str!("input.txt");
+
 fn main() {
     let mut c = Cache::new(Lru::new(), 3);
 
-    c.access(Item(0));
-    println!("{}", c);
+    for i in INPUT.lines().map(|n| n.parse().unwrap()) {
+        c.access(Item(i));
+        println!("{}", c);
+    }
 
-    c.access(Item(1));
-    println!("{}", c);
-
-    c.access(Item(0));
-    println!("{}", c);
-
-    c.access(Item(2));
-    println!("{}", c);
-
-    c.access(Item(3));
-    println!("{}", c);
+    // for i in [0, 1, 2, 3, 0, 0, 0, 1, 2, 1] {
+    //     c.access(Item(i));
+    //     println!("{}", c);
+    // }
 }

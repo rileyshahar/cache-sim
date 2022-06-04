@@ -4,8 +4,11 @@ use super::Item;
 use std::collections::HashSet;
 
 pub trait ReplacementPolicy {
+    /// Update the replacement policy's state, without evicting an item.
+    fn update_state(&mut self, next: Item);
+
     /// Return the item to be evicted.
-    fn replace(&mut self, set: &HashSet<Item>, capacity: usize, next: Item) -> Option<Item>;
+    fn replace(&mut self, set: &HashSet<Item>, capacity: usize, next: Item) -> Item;
 }
 
 /// The LRU replacement policy.
@@ -22,20 +25,16 @@ impl Lru {
 }
 
 impl ReplacementPolicy for Lru {
-    fn replace(&mut self, set: &HashSet<Item>, capacity: usize, next: Item) -> Option<Item> {
-        let to_evict = if set.len() >= capacity {
-            Some(self.stack.remove(0))
-        } else {
-            None
-        };
-
-        // insert it to the front of the stack, since it's least recently used
+    fn update_state(&mut self, next: Item) {
         if let Some(index) = self.stack.iter().position(|&i| i == next) {
             self.stack.remove(index);
         }
 
         self.stack.push(next);
+    }
 
-        to_evict
+    fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {
+        self.update_state(next);
+        self.stack.remove(0)
     }
 }
