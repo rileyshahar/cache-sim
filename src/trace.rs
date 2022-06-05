@@ -1,14 +1,15 @@
 //! Contains the `Trace` struct.
 
+use super::Item;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Default)]
 pub struct Trace {
-    trace: Vec<u32>,
+    trace: Vec<Item>,
 }
 
-impl From<Vec<u32>> for Trace {
-    fn from(trace: Vec<u32>) -> Self {
+impl From<Vec<Item>> for Trace {
+    fn from(trace: Vec<Item>) -> Self {
         Self { trace }
     }
 }
@@ -19,10 +20,10 @@ impl Trace {
     /// Returns a vector of frequencies of accesses.
     #[must_use]
     pub fn frequency_histogram(&self) -> Vec<usize> {
-        let mut freqs = vec![0; self.trace.iter().max().map_or(0, |n| n + 1) as usize];
+        let mut freqs = vec![0; self.trace.iter().max().map_or(0, |n| n.0 + 1) as usize];
 
         for i in &self.trace {
-            freqs[*i as usize] += 1;
+            freqs[i.0 as usize] += 1;
         }
 
         freqs
@@ -30,32 +31,43 @@ impl Trace {
 
     /// Get a reference to the trace.
     #[must_use]
-    pub fn trace(&self) -> &[u32] {
+    pub fn trace(&self) -> &[Item] {
         self.trace.as_ref()
     }
 }
 
 impl Display for Trace {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.trace.iter().max().map_or(true, |&n| n < 26) {
+        if self.trace.iter().max().map_or(true, |&n| n.0 < 26) {
             for i in &self.trace {
                 write!(
                     f,
                     "{}",
-                    char::from_u32(i + 'A' as u32).expect("all elements of list are valid chars")
+                    char::from_u32(i.0 + 'A' as u32).expect("all elements of list are valid chars")
                 )?;
             }
         } else {
             for i in &self.trace {
-                write!(f, "{} ", i)?;
+                write!(f, "{} ", i.0)?;
             }
         }
         Ok(())
     }
 }
 
+impl crate::stats::Stat for Trace {
+    fn update(
+        &mut self,
+        _: &std::collections::HashSet<crate::Item>,
+        next: crate::Item,
+        _: Option<crate::Item>,
+    ) {
+        self.trace.push(next);
+    }
+}
+
 pub trait Stat {
-    fn compute(t: Trace) -> Self;
+    fn compute(t: &Trace) -> Self;
 }
 
 pub struct StackDistance {
@@ -92,7 +104,7 @@ impl StackDistance {
 }
 
 impl Stat for StackDistance {
-    fn compute(t: Trace) -> Self {
+    fn compute(t: &Trace) -> Self {
         let mut distances = vec![Some(0); t.trace().len()];
 
         let mut stack = Vec::new();
@@ -121,7 +133,7 @@ mod tests {
             ($name:ident: $($in:expr),* => $($out:expr),*) => {
                 #[test]
                 fn $name() {
-                    assert_eq!(StackDistance::compute(Trace::from(vec![$($in),*])).distances, vec![$($out),*])
+                    assert_eq!(StackDistance::compute(&Trace::from(vec![$(Item($in)),*])).distances, vec![$($out),*])
                 }
             };
         }
@@ -140,7 +152,7 @@ mod tests {
             ($name:ident: $($in:expr),* => $($out:expr),*; $infinities:expr) => {
                 #[test]
                 fn $name() {
-                    let (freqs, infinities) = StackDistance::compute(Trace::from(vec![$($in),*])).histogram();
+                    let (freqs, infinities) = StackDistance::compute(&Trace::from(vec![$(Item($in)),*])).histogram();
                     assert_eq!(infinities, $infinities);
                     assert_eq!(freqs, vec![$($out),*]);
                 }
@@ -161,7 +173,7 @@ mod tests {
             ($name:ident: $($in:expr),* => $($out:expr),*) => {
                 #[test]
                 fn $name() {
-                    assert_eq!(Trace::from(vec![$($in),*]).frequency_histogram(), vec![$($out),*])
+                    assert_eq!(Trace::from(vec![$(Item($in)),*]).frequency_histogram(), vec![$($out),*])
                 }
             };
         }

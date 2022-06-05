@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 impl-trait-for-tuples = "0.2.2"
 itertools = "0.10"
+rand = "0.8.5"

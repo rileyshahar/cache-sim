@@ -3,6 +3,8 @@
 use super::Item;
 use std::collections::HashSet;
 
+use rand::seq::IteratorRandom;
+
 pub trait ReplacementPolicy: Default {
     /// Update the replacement policy's state, without evicting an item.
     fn update_state(&mut self, next: Item);
@@ -48,5 +50,19 @@ impl ReplacementPolicy for Fifo {
     fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {
         self.update_state(next);
         self.stack.remove(0)
+    }
+}
+
+/// The RAND replacement policy.
+#[derive(Default)]
+pub struct Rand;
+
+impl ReplacementPolicy for Rand {
+    fn update_state(&mut self, _: Item) {}
+
+    fn replace(&mut self, set: &HashSet<Item>, _: usize, _: Item) -> Item {
+        *set.iter()
+            .choose(&mut rand::thread_rng())
+            .expect("The set is non-empty.")
     }
 }
