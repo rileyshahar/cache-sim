@@ -1,6 +1,6 @@
-use cache_sim::{Cache, Fifo, HitRate, Item, Lru, StackDistance, Trace, TraceStat};
+use cache_sim::{Cache, Fifo, HitRate, Item, Lru};
 
-const INPUT: &str = include_str!("input.txt");
+// const INPUT: &str = include_str!("input.txt");
 
 fn main() {
     let mut l = Cache::new(Lru::default(), 3);

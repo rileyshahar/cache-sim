@@ -17,6 +17,7 @@ impl Trace {
     /// Calculate the frequency historgram.
     ///
     /// Returns a vector of frequencies of accesses.
+    #[must_use]
     pub fn frequency_histogram(&self) -> Vec<usize> {
         let mut freqs = vec![0; self.trace.iter().max().map_or(0, |n| n + 1) as usize];
 
@@ -28,6 +29,7 @@ impl Trace {
     }
 
     /// Get a reference to the trace.
+    #[must_use]
     pub fn trace(&self) -> &[u32] {
         self.trace.as_ref()
     }
