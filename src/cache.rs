@@ -7,26 +7,33 @@ use super::stats::Stat;
 use super::Item;
 
 /// A cache, generic over a replacement policy.
-pub struct Cache<R: ReplacementPolicy> {
+pub struct Cache<R: ReplacementPolicy, S: Stat> {
     set: HashSet<Item>,
     replacement_policy: R,
     capacity: usize,
-    stat: Vec<Box<dyn Stat>>,
+    stat: S,
 }
 
-impl<R: ReplacementPolicy> Cache<R> {
-    /// Create an empty cache using the replacement policy.
-    pub fn new(replacement_policy: R, capacity: usize) -> Self {
+impl<R: ReplacementPolicy, S: Stat> Cache<R, S> {
+    /// Create an empty cache using the default parameters for the replacement policy.
+    #[must_use]
+    pub fn new(capacity: usize) -> Self {
         Self {
             set: HashSet::default(),
-            replacement_policy,
+            replacement_policy: R::default(),
             capacity,
-            stat: Vec::default(),
+            stat: S::default(),
         }
     }
 
-    pub fn track(&mut self, stat: impl Stat + 'static) {
-        self.stat.push(Box::new(stat));
+    /// Create an empty cache using an explicitly configured replacement policy.
+    pub fn with_replacement_policy(policy: R, capacity: usize) -> Self {
+        Self {
+            set: HashSet::default(),
+            replacement_policy: policy,
+            capacity,
+            stat: S::default(),
+        }
     }
 
     /// Update the cache after an access to item.
@@ -37,27 +44,23 @@ impl<R: ReplacementPolicy> Cache<R> {
             let to_evict = self
                 .replacement_policy
                 .replace(&self.set, self.capacity, item);
-            for stat in &mut self.stat {
-                stat.update(&self.set, item, Some(to_evict));
-            }
+            self.stat.update(&self.set, item, Some(to_evict));
             self.set.remove(&to_evict);
         } else {
             self.replacement_policy.update_state(item);
-            for stat in &mut self.stat {
-                stat.update(&self.set, item, None);
-            }
+            self.stat.update(&self.set, item, None);
         }
         self.set.insert(item);
     }
 
-    /// Get a reference to the list of statistics.
-    pub fn statistics(&self) -> &[Box<dyn Stat>] {
-        self.stat.as_ref()
+    /// Get a reference to cache's statistic.
+    pub const fn stat(&self) -> &S {
+        &self.stat
     }
 }
 
 // An implementation of printing a cache.
-impl<R: ReplacementPolicy> std::fmt::Display for Cache<R> {
+impl<R: ReplacementPolicy, S: Stat> std::fmt::Display for Cache<R, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.set.iter().max().map_or(0, |i| i.0) < 26 {
             for item in &self.set {

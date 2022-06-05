@@ -3,11 +3,8 @@ use cache_sim::{Cache, Fifo, HitRate, Item, Lru};
 // const INPUT: &str = include_str!("input.txt");
 
 fn main() {
-    let mut l = Cache::new(Lru::default(), 3);
-    l.track(HitRate::default());
-
-    let mut f = Cache::new(Fifo::default(), 3);
-    f.track(HitRate::default());
+    let mut l = Cache::<Lru, HitRate>::new(3);
+    let mut f = Cache::<Fifo, HitRate>::new(3);
 
     // for i in INPUT.lines().map(|n| n.parse().unwrap()) {
     //     l.access(Item(i));
@@ -36,6 +33,6 @@ fn main() {
         println!("F: {}", f);
     }
 
-    dbg!(l.statistics());
-    dbg!(f.statistics());
+    dbg!(l.stat());
+    dbg!(f.stat());
 }

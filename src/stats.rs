@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use super::Item;
 
-pub trait Stat : std::fmt::Debug {
+pub trait Stat: Default {
     fn update(&mut self, set: &HashSet<Item>, next: Item, evicted: Option<Item>);
 }
 

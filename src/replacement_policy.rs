@@ -3,7 +3,7 @@
 use super::Item;
 use std::collections::HashSet;
 
-pub trait ReplacementPolicy {
+pub trait ReplacementPolicy: Default {
     /// Update the replacement policy's state, without evicting an item.
     fn update_state(&mut self, next: Item);
 

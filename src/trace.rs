@@ -54,7 +54,7 @@ impl Display for Trace {
     }
 }
 
-pub trait TraceStat {
+pub trait Stat {
     fn compute(t: Trace) -> Self;
 }
 
@@ -91,7 +91,7 @@ impl StackDistance {
     }
 }
 
-impl TraceStat for StackDistance {
+impl Stat for StackDistance {
     fn compute(t: Trace) -> Self {
         let mut distances = vec![Some(0); t.trace().len()];
 
