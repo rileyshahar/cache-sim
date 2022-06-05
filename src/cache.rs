@@ -1,6 +1,7 @@
 //! Contains utilities for managing a cache.
 
 use std::collections::HashSet;
+use std::fmt::Display;
 
 use super::replacement_policy::ReplacementPolicy;
 use super::stats::Stat;
@@ -60,7 +61,7 @@ impl<R: ReplacementPolicy, S: Stat> Cache<R, S> {
 }
 
 // An implementation of printing a cache.
-impl<R: ReplacementPolicy, S: Stat> std::fmt::Display for Cache<R, S> {
+impl<R: ReplacementPolicy, S: Stat> Display for Cache<R, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.set.iter().max().map_or(0, |i| i.0) < 26 {
             for item in &self.set {
