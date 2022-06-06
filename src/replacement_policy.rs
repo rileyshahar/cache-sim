@@ -1,17 +1,17 @@
-//! Constains replacement policies.
+//! Implementations of cache replacement policies.
 
-use super::Item;
+use crate::item::Item;
 use std::collections::{HashMap, HashSet};
 
 use rand::seq::IteratorRandom;
 
 /// An abstracted cache replacement policy.
-pub trait ReplacementPolicy {
+pub trait ReplacementPolicy<I: Item> {
     /// Update the replacement policy's state, without evicting an item.
-    fn update_state(&mut self, next: Item);
+    fn update_state(&mut self, next: I);
 
     /// Return the item to be evicted. This should _not_ be `next`.
-    fn replace(&mut self, set: &HashSet<Item>, capacity: usize, next: Item) -> Item;
+    fn replace(&mut self, set: &HashSet<I>, capacity: usize, next: I) -> I;
 }
 
 /// The LRU replacement policy, which evicts the least recently used item.
@@ -23,21 +23,21 @@ pub trait ReplacementPolicy {
 ///
 /// let mut c = Cache::<Lru>::new(3);
 ///
-/// c.access(Item(0));
-/// c.access(Item(1));
-/// c.access(Item(2));
-/// c.access(Item(0));
-/// c.access(Item(3));
+/// c.access(0);
+/// c.access(1);
+/// c.access(2);
+/// c.access(0);
+/// c.access(3);
 ///
-/// assert_eq!(c.set(), &HashSet::from([Item(0), Item(2), Item(3)]));
+/// assert_eq!(c.set(), &HashSet::from([0, 2, 3]));
 /// ```
 #[derive(Default)]
-pub struct Lru {
-    stack: Vec<Item>,
+pub struct Lru<I: Item = u32> {
+    stack: Vec<I>,
 }
 
-impl ReplacementPolicy for Lru {
-    fn update_state(&mut self, next: Item) {
+impl<I: Item> ReplacementPolicy<I> for Lru<I> {
+    fn update_state(&mut self, next: I) {
         if let Some(index) = self.stack.iter().position(|&i| i == next) {
             self.stack.remove(index);
         }
@@ -45,7 +45,7 @@ impl ReplacementPolicy for Lru {
         self.stack.push(next);
     }
 
-    fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {
+    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
         self.update_state(next);
         self.stack.remove(0)
     }
@@ -60,27 +60,27 @@ impl ReplacementPolicy for Lru {
 ///
 /// let mut c = Cache::<Fifo>::new(3);
 ///
-/// c.access(Item(0));
-/// c.access(Item(1));
-/// c.access(Item(2));
-/// c.access(Item(0));
-/// c.access(Item(3));
+/// c.access(0);
+/// c.access(1);
+/// c.access(2);
+/// c.access(0);
+/// c.access(3);
 ///
-/// assert_eq!(c.set(), &HashSet::from([Item(1), Item(2), Item(3)]));
+/// assert_eq!(c.set(), &HashSet::from([1, 2, 3]));
 /// ```
 #[derive(Default)]
-pub struct Fifo {
-    stack: Vec<Item>,
+pub struct Fifo<I: Item = u32> {
+    stack: Vec<I>,
 }
 
-impl ReplacementPolicy for Fifo {
-    fn update_state(&mut self, next: Item) {
+impl<I: Item> ReplacementPolicy<I> for Fifo<I> {
+    fn update_state(&mut self, next: I) {
         if !self.stack.contains(&next) {
             self.stack.push(next);
         }
     }
 
-    fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {
+    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
         self.update_state(next);
         self.stack.remove(0)
     }
@@ -90,10 +90,10 @@ impl ReplacementPolicy for Fifo {
 #[derive(Default)]
 pub struct Rand;
 
-impl ReplacementPolicy for Rand {
-    fn update_state(&mut self, _: Item) {}
+impl<I: Item> ReplacementPolicy<I> for Rand {
+    fn update_state(&mut self, _: I) {}
 
-    fn replace(&mut self, set: &HashSet<Item>, _: usize, _: Item) -> Item {
+    fn replace(&mut self, set: &HashSet<I>, _: usize, _: I) -> I {
         *set.iter()
             .choose(&mut rand::thread_rng())
             .expect("The set is non-empty.")
@@ -109,20 +109,20 @@ impl ReplacementPolicy for Rand {
 ///
 /// let mut c = Cache::<Mru>::new(3);
 ///
-/// c.access(Item(0));
-/// c.access(Item(1));
-/// c.access(Item(2));
-/// c.access(Item(3));
+/// c.access(0);
+/// c.access(1);
+/// c.access(2);
+/// c.access(3);
 ///
-/// assert_eq!(c.set(), &HashSet::from([Item(0), Item(1), Item(3)]));
+/// assert_eq!(c.set(), &HashSet::from([0, 1, 3]));
 /// ```
 #[derive(Default)]
-pub struct Mru {
-    stack: Vec<Item>,
+pub struct Mru<I: Item = u32> {
+    stack: Vec<I>,
 }
 
-impl ReplacementPolicy for Mru {
-    fn update_state(&mut self, next: Item) {
+impl<I: Item> ReplacementPolicy<I> for Mru<I> {
+    fn update_state(&mut self, next: I) {
         if let Some(index) = self.stack.iter().position(|&i| i == next) {
             self.stack.remove(index);
         }
@@ -130,7 +130,7 @@ impl ReplacementPolicy for Mru {
         self.stack.push(next);
     }
 
-    fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {
+    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
         self.update_state(next);
 
         // update_state just pushed the next item to the top of the stack, and we can't evict that
@@ -149,26 +149,26 @@ impl ReplacementPolicy for Mru {
 ///
 /// let mut c = Cache::<Lfu>::new(3);
 ///
-/// c.access(Item(0));
-/// c.access(Item(0));
-/// c.access(Item(1));
-/// c.access(Item(2));
-/// c.access(Item(2));
-/// c.access(Item(3));
+/// c.access(0);
+/// c.access(0);
+/// c.access(1);
+/// c.access(2);
+/// c.access(2);
+/// c.access(3);
 ///
-/// assert_eq!(c.set(), &HashSet::from([Item(0), Item(2), Item(3)]));
+/// assert_eq!(c.set(), &HashSet::from([0, 2, 3]));
 /// ```
 #[derive(Default)]
-pub struct Lfu {
-    counts: HashMap<Item, u32>,
+pub struct Lfu<I: Item = u32> {
+    counts: HashMap<I, u32>,
 }
 
-impl ReplacementPolicy for Lfu {
-    fn update_state(&mut self, next: Item) {
+impl<I: Item> ReplacementPolicy<I> for Lfu<I> {
+    fn update_state(&mut self, next: I) {
         *self.counts.entry(next).or_insert(0) += 1;
     }
 
-    fn replace(&mut self, _: &HashSet<Item>, _: usize, next: Item) -> Item {
+    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
         self.update_state(next);
         *self
             .counts

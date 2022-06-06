@@ -1,5 +1,5 @@
 use cache_sim::replacement_policy::{Fifo, Lru, Rand};
-use cache_sim::{stats, Cache, Item};
+use cache_sim::{stats, Cache};
 
 const INPUT: &str = include_str!("input.txt");
 
@@ -9,9 +9,9 @@ fn main() {
     let mut r = Cache::<Rand, (stats::HitCount, stats::MissCount)>::new(3);
 
     for i in INPUT.lines().map(|n| n.parse().unwrap()) {
-        l.access(Item(i));
-        f.access(Item(i));
-        r.access(Item(i));
+        l.access(i);
+        f.access(i);
+        r.access(i);
     }
 
     // let trace = &l.stat().2;
