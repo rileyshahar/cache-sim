@@ -15,7 +15,7 @@ pub struct Cache<R: ReplacementPolicy, S: Stat> {
     stat: S,
 }
 
-impl<R: ReplacementPolicy, S: Stat> Cache<R, S> {
+impl<R: ReplacementPolicy + Default, S: Stat> Cache<R, S> {
     /// Create an empty cache using the default parameters for the replacement policy.
     #[must_use]
     pub fn new(capacity: usize) -> Self {
@@ -26,7 +26,9 @@ impl<R: ReplacementPolicy, S: Stat> Cache<R, S> {
             stat: S::default(),
         }
     }
+}
 
+impl<R: ReplacementPolicy, S: Stat> Cache<R, S> {
     /// Create an empty cache using an explicitly configured replacement policy.
     pub fn with_replacement_policy(policy: R, capacity: usize) -> Self {
         Self {
