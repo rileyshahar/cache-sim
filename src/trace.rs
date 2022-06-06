@@ -29,10 +29,22 @@ impl Trace {
         freqs
     }
 
-    /// Get a reference to the trace.
+    /// Get a reference to the inner vector of items.
     #[must_use]
-    pub fn trace(&self) -> &[Item] {
+    pub fn inner(&self) -> &[Item] {
         self.trace.as_ref()
+    }
+
+    /// Get the length of the trace.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.trace.len()
+    }
+
+    /// Check whether the trace is empty.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.trace.is_empty()
     }
 }
 
@@ -105,11 +117,11 @@ impl StackDistance {
 
 impl Stat for StackDistance {
     fn compute(t: &Trace) -> Self {
-        let mut distances = vec![Some(0); t.trace().len()];
+        let mut distances = vec![Some(0); t.len()];
 
         let mut stack = Vec::new();
 
-        for (i, curr) in t.trace().iter().enumerate() {
+        for (i, curr) in t.inner().iter().enumerate() {
             let position = stack.iter().position(|n| n == &curr);
             distances[i] = position.map(|n| stack.len() - n - 1); // the stack is right-to-left
             if let Some(position) = position {
