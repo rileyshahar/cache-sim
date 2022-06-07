@@ -1,7 +1,7 @@
 //! Implementations of cache replacement policies.
 
 use crate::item::Item;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use rand::seq::IteratorRandom;
 
@@ -68,32 +68,34 @@ impl<I: Item> ReplacementPolicy<I> for Lru<I> {
 /// ```
 #[derive(Default)]
 pub struct Fifo<I: Item = u32> {
-    stack: Vec<I>,
+    stack: VecDeque<I>,
 }
 
 impl<I: Item> ReplacementPolicy<I> for Fifo<I> {
     fn update_state(&mut self, next: I) {
         if !self.stack.contains(&next) {
-            self.stack.push(next);
+            self.stack.push_back(next);
         }
     }
 
     fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
         self.update_state(next);
-        self.stack.remove(0)
+        self.stack.pop_front().expect("The cache is non-empty.")
     }
 }
 
 /// The RAND replacement policy, which evicts a random item.
 #[derive(Default)]
-pub struct Rand;
+pub struct Rand {
+    rng: rand::rngs::ThreadRng,
+}
 
 impl<I: Item> ReplacementPolicy<I> for Rand {
     fn update_state(&mut self, _: I) {}
 
     fn replace(&mut self, set: &HashSet<I>, _: usize, _: I) -> I {
         *set.iter()
-            .choose(&mut rand::thread_rng())
+            .choose(&mut self.rng)
             .expect("The set is non-empty.")
     }
 }
