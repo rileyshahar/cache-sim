@@ -166,12 +166,12 @@ impl<I: Item> ReplacementPolicy<I> for Lfu<I> {
         *self.counts.entry(next).or_insert(0) += 1;
     }
 
-    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
+    fn replace(&mut self, set: &HashSet<I>, _: usize, next: I) -> I {
         self.update_state(next);
         *self
             .counts
             .iter()
-            .filter(|&(&i, _)| i != next) // we can't evict next
+            .filter(|&(i, _)| set.contains(i)) // we have to evict something that's in the cache
             .min_by_key(|&(_, &count)| count) // find the minimum count of the remaining items
             .expect("The frequency table is non-empty.")
             .0
