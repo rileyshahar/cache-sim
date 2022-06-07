@@ -135,9 +135,8 @@ impl<R: ReplacementPolicy<u32>, S: Stat<u32>> Cache<R, S> {
     /// If the elements in the cache are all smaller than 26, display them as letters instead.
     ///
     /// ```
-    /// use cache_sim::Cache;
-    /// use cache_sim::replacement_policy::Lru;
-    ///
+    /// # use cache_sim::Cache;
+    /// # use cache_sim::replacement_policy::Lru;
     /// // the cache's set makes no ordering guarantees, so we use capacity one to make the test
     /// // deterministic
     /// let mut c = Cache::<Lru>::new(1);
@@ -145,36 +144,37 @@ impl<R: ReplacementPolicy<u32>, S: Stat<u32>> Cache<R, S> {
     /// c.access(0);
     /// c.access(1);
     ///
-    /// assert_eq!(c.pretty_print(), "B".to_string());
+    /// assert_eq!(&c.pretty_print(), "B");
     /// ```
     ///
     /// It will comma-separate as well:
     /// ```
-    /// use cache_sim::Cache;
-    /// use cache_sim::replacement_policy::Lru;
-    ///
+    /// # use cache_sim::Cache;
+    /// # use cache_sim::replacement_policy::Lru;
     /// let mut c = Cache::<Lru>::new(2);
     ///
     /// c.access(0);
     /// c.access(1);
     /// c.access(2);
     ///
-    /// assert!(["B, C", "C, B"].contains(&c.pretty_print().as_str()));
+    /// let pretty_print = c.pretty_print();
+    /// assert!("B, C" == pretty_print || "C, B" == pretty_print);
     /// ```
     ///
     /// Note that this doesn't work for higher values of the item:
     /// ```
-    /// use cache_sim::Cache;
-    /// use cache_sim::replacement_policy::Lru;
-    ///
+    /// # use cache_sim::Cache;
+    /// # use cache_sim::replacement_policy::Lru;
     /// let mut c = Cache::<Lru>::new(2);
     ///
     /// c.access(25);
     /// c.access(26);
     /// c.access(0);
     ///
-    /// assert!(["26, 0", "0, 26"].contains(&c.pretty_print().as_str()));
+    /// let pretty_print = c.pretty_print();
+    /// assert!("0, 26" == pretty_print || "26, 0" == pretty_print);
     /// ```
+    #[must_use]
     #[allow(unstable_name_collisions)] // needed here, the stdlib method will do the same as the
                                        // itertools one when it's stabilized
     pub fn pretty_print(&self) -> String {

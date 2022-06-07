@@ -18,7 +18,7 @@ pub trait Stat<I: Item>: Default {
 /// The raw count of cache hits.
 ///
 /// ```
-/// use cache_sim::{Cache, Item};
+/// use cache_sim::Cache;
 /// use cache_sim::replacement_policy::Lru;
 /// use cache_sim::stats::HitCount;
 ///
@@ -46,7 +46,7 @@ impl<I: Item> Stat<I> for HitCount {
 /// The raw count of cache misses.
 ///
 /// ```
-/// use cache_sim::{Cache, Item};
+/// use cache_sim::Cache;
 /// use cache_sim::replacement_policy::Lru;
 /// use cache_sim::stats::MissCount;
 ///

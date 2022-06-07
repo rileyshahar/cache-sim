@@ -5,4 +5,3 @@ pub mod stats;
 pub mod trace;
 
 pub use cache::Cache;
-pub use trace::Trace;
