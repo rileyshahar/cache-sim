@@ -18,8 +18,7 @@ pub trait ReplacementPolicy<I: Item> {
 ///
 /// ```
 /// # use std::collections::HashSet;
-/// use cache_sim::Cache;
-/// use cache_sim::Lru;
+/// use cache_sim::{Cache, Lru};
 ///
 /// let mut c = Cache::<Lru>::new(3);
 ///
@@ -55,8 +54,7 @@ impl<I: Item> ReplacementPolicy<I> for Lru<I> {
 ///
 /// ```
 /// # use std::collections::HashSet;
-/// use cache_sim::Cache;
-/// use cache_sim::Fifo;
+/// use cache_sim::{Cache, Fifo};
 ///
 /// let mut c = Cache::<Fifo>::new(3);
 ///
@@ -104,8 +102,7 @@ impl<I: Item> ReplacementPolicy<I> for Rand {
 ///
 /// ```
 /// # use std::collections::HashSet;
-/// use cache_sim::Cache;
-/// use cache_sim::Mru;
+/// use cache_sim::{Cache, Mru};
 ///
 /// let mut c = Cache::<Mru>::new(3);
 ///
@@ -144,8 +141,7 @@ impl<I: Item> ReplacementPolicy<I> for Mru<I> {
 ///
 /// ```
 /// # use std::collections::HashSet;
-/// use cache_sim::Cache;
-/// use cache_sim::Lfu;
+/// use cache_sim::{Cache, Lfu};
 ///
 /// let mut c = Cache::<Lfu>::new(3);
 ///

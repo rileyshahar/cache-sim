@@ -14,8 +14,7 @@ use crate::trace::Trace;
 ///
 /// ```
 /// # use std::collections::HashSet;
-/// use cache_sim::Cache;
-/// use cache_sim::Lru;
+/// use cache_sim::{Cache, Lru};
 ///
 /// let mut c = Cache::<Lru>::new(3);
 ///
@@ -75,9 +74,7 @@ impl<R: ReplacementPolicy<I>, S: Stat<I>, I: Item> Cache<R, S, I> {
     ///
     /// ```
     /// # use std::collections::HashSet;
-    /// use cache_sim::Cache;
-    /// use cache_sim::Trace;
-    /// use cache_sim::Lru;
+    /// use cache_sim::{Cache, Lru, Trace};
     ///
     /// let mut c = Cache::<Lru>::new(3);
     /// let t = Trace::from(vec![0, 1, 2, 0, 3]);
@@ -120,8 +117,7 @@ impl<R: ReplacementPolicy<u32>, S: Stat<u32>> Cache<R, S> {
     /// If the elements in the cache are all smaller than 26, display them as letters instead.
     ///
     /// ```
-    /// # use cache_sim::Cache;
-    /// # use cache_sim::Lru;
+    /// # use cache_sim::{Cache, Lru};
     /// // the cache's set makes no ordering guarantees, so we use capacity one to make the test
     /// // deterministic
     /// let mut c = Cache::<Lru>::new(1);
@@ -134,8 +130,7 @@ impl<R: ReplacementPolicy<u32>, S: Stat<u32>> Cache<R, S> {
     ///
     /// It will comma-separate as well:
     /// ```
-    /// # use cache_sim::Cache;
-    /// # use cache_sim::Lru;
+    /// # use cache_sim::{Cache, Lru};
     /// let mut c = Cache::<Lru>::new(2);
     ///
     /// c.access(0);

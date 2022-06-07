@@ -1,5 +1,4 @@
-use cache_sim::{stats, Cache};
-use cache_sim::{Fifo, Lru, Rand};
+use cache_sim::{stats, Cache, Fifo, Lru, Rand};
 
 const INPUT: &str = include_str!("input.txt");
 

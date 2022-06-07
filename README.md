@@ -5,8 +5,7 @@ A cache simulator.
 ```rust
 use std::collections::HashSet;
 
-use cache_sim::Cache;
-use cache_sim::Lru;
+use cache_sim::{Cache, Lru};
 
 let mut c = Cache::<Lru>::new(3);
 
@@ -23,7 +22,7 @@ assert_eq!(c.set(), &HashSet::from([0, 2, 3]));
 
 ## Items
 
-Currently, the cache abstractly caches [`u32`]s, each of which should be read to
+Currently, the cache abstractly caches `u32`s, each of which should be read to
 represent a different cacheable item, e.x. a block from memory. The cache will
 work with any type which implements the `Item` marker trait. For
 forwards-compatibliity, this should not be done frivolously, because in the
@@ -43,8 +42,7 @@ represented by the first generic type of `Cache`:
 ```rust
 use std::collections::HashSet;
 
-use cache_sim::Cache;
-use cache_sim::Fifo;
+use cache_sim::{Cache, Fifo};
 
 let mut c = Cache::<Fifo>::new(3);
 
@@ -63,8 +61,7 @@ You can attach statistics to the cache using its second generic type (default
 `()`), like so:
 
 ```rust
-use cache_sim::Cache;
-use cache_sim::Lru;
+use cache_sim::{Cache, Lru};
 use cache_sim::stats::HitCount;
 
 let mut c = Cache::<Lru, HitCount>::new(3);
@@ -81,8 +78,7 @@ assert_eq!(c.stat().0, 2);
 You can track multiple statistics using a tuple:
 
 ```rust
-use cache_sim::Cache;
-use cache_sim::Lru;
+use cache_sim::{Cache, Lru};
 use cache_sim::stats::{HitCount, MissCount};
 
 let mut c = Cache::<Lru, (HitCount, MissCount)>::new(3);
@@ -103,6 +99,7 @@ There are also tools available for analyzing abstracted traces, like so:
 
 ```rust
 use std::collections::HashMap;
+
 use cache_sim::Trace;
 
 let trace = Trace::from(vec![0, 0, 1, 0, 3, 1]);
