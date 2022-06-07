@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 mod cache;
 pub mod item;
 pub mod replacement_policy;

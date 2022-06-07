@@ -1,0 +1,29 @@
+# based on https://github.com/actions-rs/example/blob/master/.github/workflows/quickstart.yml
+
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout source
+        uses: actions/checkout@v2
+
+      - name: install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
