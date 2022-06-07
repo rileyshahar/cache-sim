@@ -1,29 +1,18 @@
-use cache_sim::{stats, Cache, Fifo, Lru, Rand};
+use cache_sim::{stats, Cache, Lfu, Trace};
 
-const INPUT: &str = include_str!("input.txt");
+// const INPUT: &str = include_str!("input.txt");
 
 fn main() {
-    let mut l = Cache::<Lru, (stats::HitCount, stats::MissCount)>::new(3);
-    let mut f = Cache::<Fifo, (stats::HitCount, stats::MissCount)>::new(3);
-    let mut r = Cache::<Rand, (stats::HitCount, stats::MissCount)>::new(3);
+    let mut c = Cache::<Lfu>::new(3);
 
-    for i in INPUT.lines().map(|n| n.parse().unwrap()) {
-        l.access(i);
-        f.access(i);
-        r.access(i);
-    }
-
-    // let trace = &l.stat().2;
-
-    // let (distances, infinities) = StackDistance::compute(trace).histogram();
-
-    // for i in distances {
-    //     println!("{}, ", i);
+    // for i in INPUT.lines().map(|n| n.parse().unwrap()) {
+    //     l.access(i);
+    //     f.access(i);
+    //     r.access(i);
     // }
 
-    // println!("infinities: {}", infinities);
+    let trace = Trace::from(vec![1, 0, 2, 2, 3]);
+    c.run_trace(&trace);
 
-    dbg!(l.stat());
-    dbg!(f.stat());
-    dbg!(r.stat());
+    dbg!(c.set());
 }
