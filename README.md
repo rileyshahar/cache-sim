@@ -6,7 +6,7 @@ A cache simulator.
 use std::collections::HashSet;
 
 use cache_sim::Cache;
-use cache_sim::replacement_policy::Lru;
+use cache_sim::Lru;
 
 let mut c = Cache::<Lru>::new(3);
 
@@ -44,7 +44,7 @@ represented by the first generic type of `Cache`:
 use std::collections::HashSet;
 
 use cache_sim::Cache;
-use cache_sim::replacement_policy::Fifo;
+use cache_sim::Fifo;
 
 let mut c = Cache::<Fifo>::new(3);
 
@@ -64,7 +64,7 @@ You can attach statistics to the cache using its second generic type (default
 
 ```rust
 use cache_sim::Cache;
-use cache_sim::replacement_policy::Lru;
+use cache_sim::Lru;
 use cache_sim::stats::HitCount;
 
 let mut c = Cache::<Lru, HitCount>::new(3);
@@ -82,7 +82,7 @@ You can track multiple statistics using a tuple:
 
 ```rust
 use cache_sim::Cache;
-use cache_sim::replacement_policy::Lru;
+use cache_sim::Lru;
 use cache_sim::stats::{HitCount, MissCount};
 
 let mut c = Cache::<Lru, (HitCount, MissCount)>::new(3);
@@ -103,13 +103,9 @@ There are also tools available for analyzing abstracted traces, like so:
 
 ```rust
 use std::collections::HashMap;
-use cache_sim::trace::Trace;
+use cache_sim::Trace;
 
 let trace = Trace::from(vec![0, 0, 1, 0, 3, 1]);
-
 let frequencies = trace.frequency_histogram();
-
 assert_eq!(frequencies.get(&0), Some(&3));
-assert_eq!(frequencies.get(&1), Some(&2));
-assert_eq!(frequencies.get(&2), None);
 ```

@@ -1,9 +1,11 @@
 //! A trace of accesses.
 
+use std::collections::HashMap;
+use std::fmt::Display;
+
 use itertools::Itertools;
 
 use crate::{item::Item, stats::Stat};
-use std::{collections::HashMap, fmt::Display};
 
 /// A trace.
 #[derive(Debug, PartialEq, Eq, Hash, Default)]
@@ -22,7 +24,7 @@ impl<I: Item> Trace<I> {
     ///
     /// ```
     /// # use std::collections::HashMap;
-    /// # use cache_sim::trace::Trace;
+    /// # use cache_sim::Trace;
     /// let frequencies = Trace::from(vec![0, 0, 1, 0, 3, 1]).frequency_histogram();
     /// assert_eq!(frequencies.get(&0), Some(&3));
     /// assert_eq!(frequencies.get(&1), Some(&2));
@@ -42,7 +44,7 @@ impl<I: Item> Trace<I> {
     /// Calculate the stack distances.
     ///
     /// ```
-    /// use cache_sim::trace::Trace;
+    /// use cache_sim::Trace;
     ///
     /// let distances = Trace::from(vec![0, 0, 1, 0, 3, 0, 1]).stack_distances();
     /// assert_eq!(
@@ -68,6 +70,10 @@ impl<I: Item> Trace<I> {
         }
 
         StackDistance { inner: distances }
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<I> {
+        self.inner.iter()
     }
 
     /// Get a reference to the inner vector of items.
@@ -98,18 +104,46 @@ impl<I: Item> Trace<I> {
     }
 }
 
+impl<I: Item> IntoIterator for Trace<I> {
+    type Item = I;
+
+    type IntoIter = <Vec<I> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
+    }
+}
+
+impl<'t, I: Item> IntoIterator for &'t Trace<I> {
+    type Item = &'t I;
+
+    type IntoIter = std::slice::Iter<'t, I>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<I: Item> FromIterator<I> for Trace<I> {
+    fn from_iter<T: IntoIterator<Item = I>>(iter: T) -> Self {
+        Self {
+            inner: Vec::from_iter(iter),
+        }
+    }
+}
+
 impl Trace<u32> {
     /// If the elements in the trace are all smaller than 26, display them as letters instead.
     ///
     /// ```
-    /// # use cache_sim::trace::Trace;
+    /// # use cache_sim::Trace;
     /// let trace = Trace::from(vec![0, 0, 2, 3, 1, 14]);
     /// assert_eq!(&trace.pretty_print(), "A, A, C, D, B, O");
     /// ```
     ///
     /// Note that this doesn't work for higher values of the item:
     /// ```
-    /// # use cache_sim::trace::Trace;
+    /// # use cache_sim::Trace;
     /// let trace = Trace::from(vec![1, 2, 26]);
     /// assert_eq!(&trace.pretty_print(), "1, 2, 26");
     /// ```
@@ -159,7 +193,7 @@ impl<I: Item> Stat<I> for Trace<I> {
 /// Infinities are represented by `None`; finite distances by `Some(n)`.
 ///
 /// ```
-/// use cache_sim::trace::Trace;
+/// use cache_sim::Trace;
 ///
 /// let distances = Trace::from(vec![0, 0, 1, 0, 3, 0, 1]).stack_distances();
 /// assert_eq!(
@@ -177,7 +211,7 @@ impl StackDistance {
     /// Returns a vector of frequencies of stack distances, plus the count of intinities.
     ///
     /// ```
-    /// use cache_sim::trace::Trace;
+    /// use cache_sim::Trace;
     ///
     /// let distances = Trace::from(vec![0, 0, 1, 0, 3, 0, 1]).stack_distances();
     /// let (distance_hist, infinities) = distances.histogram();

@@ -19,7 +19,7 @@ pub trait Stat<I: Item>: Default {
 ///
 /// ```
 /// use cache_sim::Cache;
-/// use cache_sim::replacement_policy::Lru;
+/// use cache_sim::Lru;
 /// use cache_sim::stats::HitCount;
 ///
 /// let mut c = Cache::<Lru, HitCount>::new(3);
@@ -47,7 +47,7 @@ impl<I: Item> Stat<I> for HitCount {
 ///
 /// ```
 /// use cache_sim::Cache;
-/// use cache_sim::replacement_policy::Lru;
+/// use cache_sim::Lru;
 /// use cache_sim::stats::MissCount;
 ///
 /// let mut c = Cache::<Lru, MissCount>::new(3);

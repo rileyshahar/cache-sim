@@ -8,15 +8,14 @@ use itertools::Itertools;
 use crate::item::Item;
 use crate::replacement_policy::ReplacementPolicy;
 use crate::stats::Stat;
+use crate::trace::Trace;
 
 /// A cache, generic over a replacement policy and set of statistics.
-///
-/// Basic usage:
 ///
 /// ```
 /// # use std::collections::HashSet;
 /// use cache_sim::Cache;
-/// use cache_sim::replacement_policy::Lru;
+/// use cache_sim::Lru;
 ///
 /// let mut c = Cache::<Lru>::new(3);
 ///
@@ -27,41 +26,6 @@ use crate::stats::Stat;
 /// c.access(3);
 ///
 /// assert_eq!(c.set(), &HashSet::from([0, 2, 3]));
-/// ```
-///
-/// The cache tracks the statistics represented by the type S (default to none):
-/// ```
-/// use cache_sim::Cache;
-/// use cache_sim::replacement_policy::Lru;
-/// use cache_sim::stats::HitCount;
-///
-/// let mut c = Cache::<Lru, HitCount>::new(3);
-/// c.access(0); // miss
-/// c.access(1); // miss
-/// c.access(2); // miss
-/// c.access(0); // hit
-/// c.access(3); // miss
-/// c.access(0); // hit
-///
-/// assert_eq!(c.stat().0, 2);
-/// ```
-///
-/// To track multiple statistics, use a tuple of statistics:
-/// ```
-/// use cache_sim::Cache;
-/// use cache_sim::replacement_policy::Lru;
-/// use cache_sim::stats::{HitCount, MissCount};
-///
-/// let mut c = Cache::<Lru, (HitCount, MissCount)>::new(3);
-/// c.access(0); // miss
-/// c.access(1); // miss
-/// c.access(2); // miss
-/// c.access(0); // hit
-/// c.access(3); // miss
-/// c.access(0); // hit
-///
-/// assert_eq!(c.stat().0.0, 2);
-/// assert_eq!(c.stat().1.0, 4);
 /// ```
 ///
 pub struct Cache<R: ReplacementPolicy<I>, S: Stat<I> = (), I: Item = u32> {
@@ -107,6 +71,27 @@ impl<R: ReplacementPolicy<I>, S: Stat<I>, I: Item> Cache<R, S, I> {
         self.set.insert(item);
     }
 
+    /// Update the cache after accessing all items in the trace.
+    ///
+    /// ```
+    /// # use std::collections::HashSet;
+    /// use cache_sim::Cache;
+    /// use cache_sim::Trace;
+    /// use cache_sim::Lru;
+    ///
+    /// let mut c = Cache::<Lru>::new(3);
+    /// let t = Trace::from(vec![0, 1, 2, 0, 3]);
+    ///
+    /// c.run_trace(&t);
+    ///
+    /// assert_eq!(c.set(), &HashSet::from([0, 2, 3]));
+    /// ```
+    pub fn run_trace(&mut self, trace: &Trace<I>) {
+        for item in trace {
+            self.access(*item);
+        }
+    }
+
     /// Get a reference to cache's statistic.
     pub const fn stat(&self) -> &S {
         &self.stat
@@ -136,7 +121,7 @@ impl<R: ReplacementPolicy<u32>, S: Stat<u32>> Cache<R, S> {
     ///
     /// ```
     /// # use cache_sim::Cache;
-    /// # use cache_sim::replacement_policy::Lru;
+    /// # use cache_sim::Lru;
     /// // the cache's set makes no ordering guarantees, so we use capacity one to make the test
     /// // deterministic
     /// let mut c = Cache::<Lru>::new(1);
@@ -150,7 +135,7 @@ impl<R: ReplacementPolicy<u32>, S: Stat<u32>> Cache<R, S> {
     /// It will comma-separate as well:
     /// ```
     /// # use cache_sim::Cache;
-    /// # use cache_sim::replacement_policy::Lru;
+    /// # use cache_sim::Lru;
     /// let mut c = Cache::<Lru>::new(2);
     ///
     /// c.access(0);
@@ -164,7 +149,7 @@ impl<R: ReplacementPolicy<u32>, S: Stat<u32>> Cache<R, S> {
     /// Note that this doesn't work for higher values of the item:
     /// ```
     /// # use cache_sim::Cache;
-    /// # use cache_sim::replacement_policy::Lru;
+    /// # use cache_sim::Lru;
     /// let mut c = Cache::<Lru>::new(2);
     ///
     /// c.access(25);
