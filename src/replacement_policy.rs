@@ -2,6 +2,8 @@
 
 use crate::item::Item;
 use std::collections::{HashMap, HashSet, VecDeque};
+use itertools::Itertools;
+use crate::trace::Trace;
 
 use rand::seq::IteratorRandom;
 
@@ -179,6 +181,66 @@ impl<I: Item> ReplacementPolicy<I> for Lfu<I> {
             .min_by_key(|&(_, &count)| count) // find the minimum count of the remaining items
             .expect("The frequency table is non-empty.")
             .0
+    }
+}
+
+/*
+The basic Opt replacement policy - evicts the item used farthest in the future
+
+Requires that the trace be fed to it when creating the cache.  This is currently done
+using the with_replacement_policy() method to manually configure the replacement
+policy and by using the on_trace() method to create the Opt instance for that trace.
+
+For example:
+
+```
+let trace = Trace::from(vec![0, 1, 2, 2, 3, 2, 1, 3, 1, 0, 1, 2]);
+let mut c = Cache::<Opt>::with_replacement_policy(Opt::on_trace(&trace),3);
+
+*/
+
+#[derive(Default)]
+pub struct Opt<I: Item = u32> {
+    trace: Vec<I>,
+}
+
+
+impl<I:Item> Opt<I>{
+	pub fn on_trace(trace: &Trace<I>) -> Self{
+		Self{
+			//really not sure I'm doing this part correctly, but it works
+			trace: (trace.inner()).to_owned(),
+		}
+	}
+}
+
+
+impl<I: Item> ReplacementPolicy<I> for Opt<I> {
+    fn update_state(&mut self, _: I) {
+		//progress forward in the trace
+		self.trace.remove(0);
+	}
+
+    fn replace(&mut self, set: &HashSet<I>, _: usize, next: I) -> I {
+		self.update_state(next);
+		//first check if anything in the cache is never used again - those are easy choices
+		//to evict but don't show up by filtering the trace
+		//I'm sure this can be done nicely by mapping each element in the cache onto the next time
+		//it appears in the trace (or some high value if never) and then just selecting the max value,
+		//but I'm to tired to do that now
+		if let Some(element) = set.iter().filter(|&i| !self.trace.contains(i)).next(){
+			*element
+		}
+		else{
+			//If we got here, every item in the cache is used again at some point
+			*self
+            .trace
+            .iter()
+            .filter(|&i| set.contains(i)) 		// we have to evict something that's in the cache
+            .unique()							//Find only the next occurence of each item
+            .last()								//evict the farthest in the future
+            .expect("The trace is non-empty.")
+        }
     }
 }
 

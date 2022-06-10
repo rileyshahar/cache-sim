@@ -9,4 +9,4 @@ pub mod trace;
 pub use cache::Cache;
 pub use trace::Trace;
 
-pub use replacement_policy::{Fifo, Lfu, Lru, Mru, Rand};
+pub use replacement_policy::{Fifo, Lfu, Lru, Mru, Rand, Opt};

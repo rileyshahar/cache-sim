@@ -1,9 +1,10 @@
-use cache_sim::{stats, Cache, Lfu, Trace};
+use cache_sim::{stats, Cache, Opt, Trace};
 
 // const INPUT: &str = include_str!("input.txt");
 
 fn main() {
-    let mut c = Cache::<Lfu>::new(3);
+	let trace = Trace::from(vec![0, 1, 2, 2, 3, 2, 4, 1, 3, 4, 1, 0, 1, 3, 2]);
+    let mut c = Cache::<Opt,(stats::HitCount,stats::MissCount)>::with_replacement_policy(Opt::on_trace(&trace),3);
 
     // for i in INPUT.lines().map(|n| n.parse().unwrap()) {
     //     l.access(i);
@@ -11,8 +12,8 @@ fn main() {
     //     r.access(i);
     // }
 
-    let trace = Trace::from(vec![1, 0, 2, 2, 3]);
     c.run_trace(&trace);
 
     dbg!(c.set());
+    dbg!(c.stat());
 }
