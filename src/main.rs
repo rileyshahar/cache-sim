@@ -1,4 +1,4 @@
-use cache_sim::{stats, Cache, Lfu, Trace};
+use cache_sim::{Cache, Lfu, Trace};
 
 // const INPUT: &str = include_str!("input.txt");
 

@@ -30,44 +30,64 @@ use crate::trace::Trace;
 pub struct Cache<R: ReplacementPolicy<I>, S: Stat<I> = (), I: Item = u32> {
     set: HashSet<I>,
     replacement_policy: R,
-    capacity: usize,
+    capacity: f64,
     stat: S,
 }
 
 impl<R: ReplacementPolicy<I>, S: Stat<I>, I: Item> Cache<R, S, I> {
     /// Create an empty cache using an explicitly configured replacement policy.
-    pub fn with_replacement_policy(policy: R, capacity: usize) -> Self {
+    pub fn with_replacement_policy(policy: R, capacity: impl Into<f64>) -> Self {
         Self {
             set: HashSet::default(),
             replacement_policy: policy,
-            capacity,
+            capacity: capacity.into(),
             stat: S::default(),
         }
     }
 
+    /// Get the currently used capacity of the set of items.
+    fn used_capacity(&self) -> f64 {
+        self.set.iter().map(Item::size).sum()
+    }
+
+    /// Check whether the cache has space for item.
+    fn has_capacity_for(&self, item: I) -> bool {
+        self.used_capacity() + item.size() <= self.capacity
+    }
+
     /// Update the cache after an access to item.
+    ///
+    /// # Panics
+    ///
+    /// If the replacement policy errors, and so we end up over capacity.
     pub fn access(&mut self, item: I) {
-        if self.set.len() < self.capacity || self.set.contains(&item) {
+        if self.set.contains(&item) || self.has_capacity_for(item) {
             // we're assuming demand caching for now, so here we don't need to change anything in
             // the cache, and we just update the state of the replacement policy and the statistics
-            self.replacement_policy.update_state(item);
-            self.stat.update(&self.set, item, None);
+            self.replacement_policy
+                .update_state(&self.set, self.capacity, item);
+            self.stat.update(&self.set, item, &HashSet::new());
         } else {
             // here we actually need to evict something
             let to_evict = self
                 .replacement_policy
                 .replace(&self.set, self.capacity, item);
 
+            self.stat.update(&self.set, item, &to_evict);
+
             // TODO: is there an easy restructuring of this that prevents us from evicting and then
             // reinserting `item`, thus ending with an over capacity cache? This can happen now if
             // the replacement policy is implemented incorrectly.
-            self.stat.update(&self.set, item, Some(to_evict));
-            self.set.remove(&to_evict);
+            for item in to_evict {
+                self.set.remove(&item);
+            }
         }
 
         // finally, again because we assume demand paging, we always have to put the last access
         // into the cache
         self.set.insert(item);
+
+        assert!(self.capacity >= self.used_capacity());
     }
 
     /// Update the cache after accessing all items in the trace.
@@ -103,11 +123,11 @@ impl<R: ReplacementPolicy<I>, S: Stat<I>, I: Item> Cache<R, S, I> {
 impl<R: ReplacementPolicy<I> + Default, S: Stat<I>, I: Item> Cache<R, S, I> {
     /// Create an empty cache using the default parameters for the replacement policy.
     #[must_use]
-    pub fn new(capacity: usize) -> Self {
+    pub fn new(capacity: impl Into<f64>) -> Self {
         Self {
             set: HashSet::default(),
             replacement_policy: R::default(),
-            capacity,
+            capacity: capacity.into(),
             stat: S::default(),
         }
     }

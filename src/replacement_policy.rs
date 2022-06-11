@@ -1,17 +1,18 @@
 //! Implementations of cache replacement policies.
 
-use crate::item::Item;
+use crate::item::{GeneralModelItem, Item};
 use std::collections::{HashMap, HashSet, VecDeque};
 
+use approx::abs_diff_eq;
 use rand::seq::IteratorRandom;
 
 /// An abstracted cache replacement policy.
 pub trait ReplacementPolicy<I: Item> {
     /// Update the replacement policy's state, without evicting an item.
-    fn update_state(&mut self, next: I);
+    fn update_state(&mut self, set: &HashSet<I>, capacity: f64, next: I);
 
     /// Return the item to be evicted. This should _not_ be `next`.
-    fn replace(&mut self, set: &HashSet<I>, capacity: usize, next: I) -> I;
+    fn replace(&mut self, set: &HashSet<I>, capacity: f64, next: I) -> HashSet<I>;
 }
 
 /// The LRU replacement policy, which evicts the least recently used item.
@@ -36,7 +37,7 @@ pub struct Lru<I: Item = u32> {
 }
 
 impl<I: Item> ReplacementPolicy<I> for Lru<I> {
-    fn update_state(&mut self, next: I) {
+    fn update_state(&mut self, _: &HashSet<I>, _: f64, next: I) {
         if let Some(index) = self.stack.iter().position(|&i| i == next) {
             self.stack.remove(index);
         }
@@ -44,9 +45,9 @@ impl<I: Item> ReplacementPolicy<I> for Lru<I> {
         self.stack.push(next);
     }
 
-    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
-        self.update_state(next);
-        self.stack.remove(0)
+    fn replace(&mut self, set: &HashSet<I>, capacity: f64, next: I) -> HashSet<I> {
+        self.update_state(set, capacity, next);
+        HashSet::from([self.stack.remove(0)])
     }
 }
 
@@ -72,15 +73,15 @@ pub struct Fifo<I: Item = u32> {
 }
 
 impl<I: Item> ReplacementPolicy<I> for Fifo<I> {
-    fn update_state(&mut self, next: I) {
+    fn update_state(&mut self, _: &HashSet<I>, _: f64, next: I) {
         if !self.stack.contains(&next) {
             self.stack.push_back(next);
         }
     }
 
-    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
-        self.update_state(next);
-        self.stack.pop_front().expect("The cache is non-empty.")
+    fn replace(&mut self, set: &HashSet<I>, capacity: f64, next: I) -> HashSet<I> {
+        self.update_state(set, capacity, next);
+        HashSet::from([self.stack.pop_front().expect("The cache is non-empty.")])
     }
 }
 
@@ -91,12 +92,13 @@ pub struct Rand {
 }
 
 impl<I: Item> ReplacementPolicy<I> for Rand {
-    fn update_state(&mut self, _: I) {}
+    fn update_state(&mut self, _: &HashSet<I>, _: f64, _: I) {}
 
-    fn replace(&mut self, set: &HashSet<I>, _: usize, _: I) -> I {
-        *set.iter()
+    fn replace(&mut self, set: &HashSet<I>, _: f64, _: I) -> HashSet<I> {
+        HashSet::from([*set
+            .iter()
             .choose(&mut self.rng)
-            .expect("The set is non-empty.")
+            .expect("The set is non-empty.")])
     }
 }
 
@@ -121,7 +123,7 @@ pub struct Mru<I: Item = u32> {
 }
 
 impl<I: Item> ReplacementPolicy<I> for Mru<I> {
-    fn update_state(&mut self, next: I) {
+    fn update_state(&mut self, _: &HashSet<I>, _: f64, next: I) {
         if let Some(index) = self.stack.iter().position(|&i| i == next) {
             self.stack.remove(index);
         }
@@ -129,13 +131,13 @@ impl<I: Item> ReplacementPolicy<I> for Mru<I> {
         self.stack.push(next);
     }
 
-    fn replace(&mut self, _: &HashSet<I>, _: usize, next: I) -> I {
-        self.update_state(next);
+    fn replace(&mut self, set: &HashSet<I>, capacity: f64, next: I) -> HashSet<I> {
+        self.update_state(set, capacity, next);
 
         // update_state just pushed the next item to the top of the stack, and we can't evict that
         // item (we want the most recently used item _other_ than it), so we get the second-to-last
         // item from the stack.
-        self.stack.remove(self.stack.len() - 2)
+        HashSet::from([self.stack.remove(self.stack.len() - 2)])
     }
 }
 
@@ -166,19 +168,129 @@ pub struct Lfu<I: Item = u32> {
 }
 
 impl<I: Item> ReplacementPolicy<I> for Lfu<I> {
-    fn update_state(&mut self, next: I) {
+    fn update_state(&mut self, _: &HashSet<I>, _: f64, next: I) {
         *self.counts.entry(next).or_insert(0) += 1;
     }
 
-    fn replace(&mut self, set: &HashSet<I>, _: usize, next: I) -> I {
-        self.update_state(next);
-        *self
+    fn replace(&mut self, set: &HashSet<I>, capacity: f64, next: I) -> HashSet<I> {
+        self.update_state(set, capacity, next);
+        HashSet::from([*self
             .counts
             .iter()
             .filter(|&(i, _)| set.contains(i)) // we have to evict something that's in the cache
             .min_by_key(|&(_, &count)| count) // find the minimum count of the remaining items
             .expect("The frequency table is non-empty.")
-            .0
+            .0])
+    }
+}
+
+/// The landlord replacement algotihm.
+///
+/// Detailed in this paper: <https://arxiv.org/abs/cs/0205033>
+///
+/// ```
+/// # use std::collections::HashSet;
+/// use cache_sim::{Cache, Landlord, GeneralModelGenerator};
+///
+/// let mut cache = Cache::<Landlord, (), _>::new(3);
+/// let mut g = GeneralModelGenerator::new();
+///
+/// let a = g.item(1.0, 1.0);
+/// let b = g.item(0.5, 1.5);
+/// let c = g.item(1.0, 0.5);
+/// let d = g.item(1.0, 1.0);
+///
+/// cache.access(a);
+/// cache.access(b);
+/// cache.access(c);
+/// cache.access(d);
+///
+/// assert_eq!(cache.set(), &HashSet::from([a, c, d]));
+/// ```
+pub struct Landlord<I: Item = GeneralModelItem> {
+    credit: HashMap<I, f64>,
+    credit_increase: f64,
+}
+
+impl<I: Item> Default for Landlord<I> {
+    fn default() -> Self {
+        Self {
+            credit: HashMap::default(),
+            credit_increase: 1.0,
+        }
+    }
+}
+
+impl<I: Item> Landlord<I> {
+    /// Instantiate a new landlord replacement policy.
+    ///
+    /// The `credit_increase` parameter represents the percentage of the gap between the current credit
+    /// and maximum credit (cost) to increase an item's credit when it is hit. It should not be above
+    /// one. Higher values are closer to LRU, lower values are closer to FIFO. This defaults to 1,
+    /// and should generally be between 0 and 1.
+    #[must_use]
+    pub fn new(credit_increase: f64) -> Self {
+        Self {
+            credit: HashMap::default(),
+            credit_increase,
+        }
+    }
+}
+
+impl<I: Item> ReplacementPolicy<I> for Landlord<I> {
+    fn update_state(&mut self, set: &HashSet<I>, _: f64, next: I) {
+        // here we know that there is room in the cache, so we don't need to do the while loop in
+        // the algorithm
+        if set.contains(&next) {
+            if let Some(current_credit) = self.credit.get_mut(&next) {
+                *current_credit += (next.cost() - *current_credit) * self.credit_increase;
+            } else {
+                // should be impossible, because we know `next` is in the set.
+                self.credit.insert(next, next.cost());
+            }
+        } else {
+            self.credit.insert(next, next.cost());
+        }
+    }
+
+    fn replace(&mut self, set: &HashSet<I>, capacity: f64, next: I) -> HashSet<I> {
+        let mut to_evict = HashSet::default();
+
+        while set
+            .iter()
+            .filter(|i| !to_evict.contains(*i))
+            .map(Item::size)
+            .sum::<f64>()
+            + next.size()
+            > capacity
+        {
+            // have to compute min cost by hand because of limitations with float
+            let mut current_min_cost = f64::MAX;
+            let mut current_min_item = None;
+            for item in set {
+                if item.cost() < current_min_cost {
+                    current_min_cost = item.cost();
+                    current_min_item = Some(item);
+                }
+            }
+
+            let min = current_min_item.expect("The set is non-empty.");
+            let delta = self.credit.get(min).expect("The item is in the set.") / min.size();
+
+            // decrease the credit for everything in the set
+            for item in set {
+                *self.credit.get_mut(item).expect("The item is in the set.") -= delta * item.size();
+            }
+
+            // evict items with no credit
+            to_evict.extend(set.iter().filter(|i| {
+                abs_diff_eq!(self.credit.get(i).expect("The item is in the set."), &0.0)
+            }));
+        }
+
+        self.update_state(set, capacity, next);
+
+        to_evict
     }
 }
 

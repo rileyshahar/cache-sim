@@ -12,7 +12,10 @@ use crate::item::Item;
 #[impl_trait_for_tuples::impl_for_tuples(12)] // can't go higher bc the stdlib doesn't impl default
                                               // for bigger tuples
 pub trait Stat<I: Item>: Default {
-    fn update(&mut self, set: &HashSet<I>, next: I, evicted: Option<I>);
+    /// Update the stat.
+    ///
+    /// We get passed the set _before_ evictions occur.
+    fn update(&mut self, set: &HashSet<I>, next: I, to_be_evicted: &HashSet<I>);
 }
 
 /// The raw count of cache hits.
@@ -35,7 +38,7 @@ pub trait Stat<I: Item>: Default {
 pub struct HitCount(pub u32);
 
 impl<I: Item> Stat<I> for HitCount {
-    fn update(&mut self, set: &HashSet<I>, next: I, _: Option<I>) {
+    fn update(&mut self, set: &HashSet<I>, next: I, _: &HashSet<I>) {
         if set.contains(&next) {
             self.0 += 1;
         }
@@ -62,7 +65,7 @@ impl<I: Item> Stat<I> for HitCount {
 pub struct MissCount(pub u32);
 
 impl<I: Item> Stat<I> for MissCount {
-    fn update(&mut self, set: &HashSet<I>, next: I, _: Option<I>) {
+    fn update(&mut self, set: &HashSet<I>, next: I, _: &HashSet<I>) {
         if !set.contains(&next) {
             self.0 += 1;
         }

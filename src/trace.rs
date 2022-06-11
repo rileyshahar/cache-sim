@@ -1,6 +1,6 @@
 //! A trace of accesses.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
 use itertools::Itertools;
@@ -183,7 +183,7 @@ impl<I: Item> Display for Trace<I> {
 }
 
 impl<I: Item> Stat<I> for Trace<I> {
-    fn update(&mut self, _: &std::collections::HashSet<I>, next: I, _: Option<I>) {
+    fn update(&mut self, _: &std::collections::HashSet<I>, next: I, _: &HashSet<I>) {
         self.inner.push(next);
     }
 }
