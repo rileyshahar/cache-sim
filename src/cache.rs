@@ -30,13 +30,13 @@ use crate::trace::Trace;
 pub struct Cache<R: ReplacementPolicy<I>, S: Stat<I> = (), I: Item = u32> {
     set: HashSet<I>,
     replacement_policy: R,
-    capacity: f64,
+    capacity: u32,
     stat: S,
 }
 
 impl<R: ReplacementPolicy<I>, S: Stat<I>, I: Item> Cache<R, S, I> {
     /// Create an empty cache using an explicitly configured replacement policy.
-    pub fn with_replacement_policy(policy: R, capacity: impl Into<f64>) -> Self {
+    pub fn with_replacement_policy(policy: R, capacity: impl Into<u32>) -> Self {
         Self {
             set: HashSet::default(),
             replacement_policy: policy,
@@ -46,7 +46,7 @@ impl<R: ReplacementPolicy<I>, S: Stat<I>, I: Item> Cache<R, S, I> {
     }
 
     /// Get the currently used capacity of the set of items.
-    fn used_capacity(&self) -> f64 {
+    fn used_capacity(&self) -> u32 {
         self.set.iter().map(Item::size).sum()
     }
 
@@ -123,11 +123,11 @@ impl<R: ReplacementPolicy<I>, S: Stat<I>, I: Item> Cache<R, S, I> {
 impl<R: ReplacementPolicy<I> + Default, S: Stat<I>, I: Item> Cache<R, S, I> {
     /// Create an empty cache using the default parameters for the replacement policy.
     #[must_use]
-    pub fn new(capacity: impl Into<f64>) -> Self {
+    pub fn new(capacity: u32) -> Self {
         Self {
             set: HashSet::default(),
             replacement_policy: R::default(),
-            capacity: capacity.into(),
+            capacity,
             stat: S::default(),
         }
     }

@@ -7,17 +7,19 @@ pub trait Item:
     /// The cost to cache the item; i.e. the cost of a miss.
     fn cost(&self) -> f64;
 
+    // TODO: should this be a float? the young paper says that sizes are integral, so we're making
+    // them integers for now because floats work strangely, but maybe to be more general we should
+    // allow floats
     /// The size of the item in the cache.
-    fn size(&self) -> f64;
+    fn size(&self) -> u32;
 }
 
 impl Item for u32 {
     fn cost(&self) -> f64 {
         1.0
     }
-
-    fn size(&self) -> f64 {
-        1.0
+    fn size(&self) -> u32 {
+        1
     }
 }
 
@@ -32,7 +34,7 @@ impl Item for u32 {
 pub struct GeneralModelItem {
     uid: u32,
     cost: f64,
-    size: f64,
+    size: u32,
 }
 
 impl GeneralModelItem {
@@ -40,7 +42,7 @@ impl GeneralModelItem {
     ///
     /// If you don't care about the unique identifier, prefer using a [`GeneralModelGenerator`].
     #[must_use]
-    pub const fn new(uid: u32, cost: f64, size: f64) -> Self {
+    pub const fn new(uid: u32, cost: f64, size: u32) -> Self {
         Self { uid, cost, size }
     }
 }
@@ -74,7 +76,7 @@ impl Item for GeneralModelItem {
         self.cost
     }
 
-    fn size(&self) -> f64 {
+    fn size(&self) -> u32 {
         self.size
     }
 }
@@ -88,7 +90,7 @@ pub struct GeneralModelGenerator {
 }
 
 impl GeneralModelGenerator {
-    pub fn item(&mut self, cost: f64, size: f64) -> GeneralModelItem {
+    pub fn item(&mut self, cost: f64, size: u32) -> GeneralModelItem {
         let ret = GeneralModelItem {
             uid: self.counter,
             cost,

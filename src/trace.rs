@@ -58,13 +58,17 @@ impl<I: Item> Trace<I> {
     pub fn stack_distances(&self) -> StackDistance {
         let mut distances = vec![Some(0); self.len()];
 
-        let mut stack = Vec::new();
+        let mut stack: Vec<&I> = Vec::new();
 
         for (i, curr) in self.inner().iter().enumerate() {
-            let position = stack.iter().position(|n| n == &curr);
-            distances[i] = position.map(|n| stack.len() - n - 1); // the stack is right-to-left
-            if let Some(position) = position {
+            if let Some(position) = stack.iter().position(|n| n == &curr) {
+                // skip position + 1, then sum all the sizes until the top of the stack
+                // this is our notion of size-aware stack distance, which generalizes the normal
+                // version from the paging model
+                distances[i] = Some(stack.iter().skip(position + 1).map(|i| i.size()).sum());
                 stack.remove(position);
+            } else {
+                distances[i] = None;
             }
             stack.push(curr);
         }
@@ -202,7 +206,7 @@ impl<I: Item> Stat<I> for Trace<I> {
 /// );
 /// ```
 pub struct StackDistance {
-    inner: Vec<Option<usize>>,
+    inner: Vec<Option<u32>>,
 }
 
 impl StackDistance {
@@ -221,14 +225,14 @@ impl StackDistance {
     pub fn histogram(&self) -> (Vec<usize>, usize) {
         let max = self.inner.iter().flatten().max();
 
-        let mut freqs = max.map_or_else(Vec::new, |max| vec![0; max + 1]);
+        let mut freqs = max.map_or_else(Vec::new, |max| vec![0; *max as usize + 1]);
 
         let mut infinities = 0;
 
         for &i in &self.inner {
             #[allow(clippy::option_if_let_else)]
             if let Some(i) = i {
-                freqs[i] += 1;
+                freqs[i as usize] += 1;
             } else {
                 infinities += 1;
             }
@@ -241,7 +245,7 @@ impl StackDistance {
     ///
     /// The ith element of the vector is the ith access of the trace.
     #[must_use]
-    pub fn inner(&self) -> &[Option<usize>] {
+    pub fn inner(&self) -> &[Option<u32>] {
         self.inner.as_ref()
     }
 
@@ -250,7 +254,7 @@ impl StackDistance {
     /// The ith element of the vector is the ith access of the trace.
     #[must_use]
     #[allow(clippy::missing_const_for_fn)] // false positive, destructors can't be const
-    pub fn into_inner(self) -> Vec<Option<usize>> {
+    pub fn into_inner(self) -> Vec<Option<u32>> {
         self.inner
     }
 }
@@ -276,6 +280,23 @@ mod tests {
         stack_distance_test!(one_two: 1, 2, 1, 1, 1 => None, None, Some(1), Some(0), Some(0));
         stack_distance_test!(one_repeated: 1, 2, 3, 1 => None, None, None, Some(2));
         // stack_distance_test!(empty: => );
+
+        #[test]
+        fn with_sizes() {
+            use crate::item::GeneralModelGenerator;
+
+            let mut g = GeneralModelGenerator::new();
+
+            let a = g.item(1.0, 2);
+            let b = g.item(1.0, 4);
+            let c = g.item(1.0, 3);
+
+            let trace = Trace::from(vec![a, b, c, a]);
+            assert_eq!(
+                trace.stack_distances().inner(),
+                vec![None, None, None, Some(7)]
+            );
+        }
     }
 
     mod stack_distance_histograms {
