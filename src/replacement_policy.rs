@@ -184,41 +184,49 @@ impl<I: Item> ReplacementPolicy<I> for Lfu<I> {
     }
 }
 
-/*
-The basic Opt replacement policy - evicts the item used farthest in the future
 
-Requires that the trace be fed to it when creating the cache.  This is currently done
-using the with_replacement_policy() method to manually configure the replacement
-policy and by using the on_trace() method to create the Opt instance for that trace.
-
-For example:
-
-```
-let trace = Trace::from(vec![0, 1, 2, 2, 3, 2, 1, 3, 1, 0, 1, 2]);
-let mut c = Cache::<Opt>::with_replacement_policy(Opt::on_trace(&trace),3);
-
-*/
-
+/// The OPT replacement policy, which evicts the item used farthest in the future
+///
+/// Requires that the trace be fed to it when creating the cache.  This is currently done
+/// using the with_replacement_policy() method to manually configure the replacement
+/// policy and by using the on_trace() method to create the Opt instance for that trace.
+///
+/// For example:
+///
+/// ```
+/// # use std::collections::HashSet;
+/// use cache_sim::{Trace, Cache, Opt};
+/// 
+/// let trace = Trace::from(vec![0, 1, 2, 3, 0, 2, 2, 1, 2, 3]);
+/// let mut c = Cache::<Opt>::with_replacement_policy(Opt::on_trace(&trace),3);
+/// 
+/// c.run_trace(&trace);
+///
+/// assert_eq!(c.set(), &HashSet::from([1, 2, 3]));
+/// 
+/// ```
 #[derive(Default)]
-pub struct Opt<I: Item = u32> {
-    trace: Vec<I>,
+pub struct Opt<'t, I: Item = u32> {
+    trace: &'t[I],
+    index: usize,
 }
 
 
-impl<I:Item> Opt<I>{
-	pub fn on_trace(trace: &Trace<I>) -> Self{
+impl<'t, I:Item> Opt<'t, I>{
+	pub fn on_trace(trace: &'t Trace<I>) -> Self{
 		Self{
 			//really not sure I'm doing this part correctly, but it works
-			trace: (trace.inner()).to_owned(),
+			trace: trace.inner(),
+			index: 0,
 		}
 	}
 }
 
 
-impl<I: Item> ReplacementPolicy<I> for Opt<I> {
+impl<'t, I: Item> ReplacementPolicy<I> for Opt<'t, I> {
     fn update_state(&mut self, _: I) {
 		//progress forward in the trace
-		self.trace.remove(0);
+		self.index += 1;
 	}
 
     fn replace(&mut self, set: &HashSet<I>, _: usize, next: I) -> I {
@@ -228,7 +236,7 @@ impl<I: Item> ReplacementPolicy<I> for Opt<I> {
 		//I'm sure this can be done nicely by mapping each element in the cache onto the next time
 		//it appears in the trace (or some high value if never) and then just selecting the max value,
 		//but I'm to tired to do that now
-		if let Some(element) = set.iter().filter(|&i| !self.trace.contains(i)).next(){
+		if let Some(element) = set.iter().find(|&i| !self.trace.iter().skip(self.index).any(|&j| j == *i)){
 			*element
 		}
 		else{
@@ -236,6 +244,7 @@ impl<I: Item> ReplacementPolicy<I> for Opt<I> {
 			*self
             .trace
             .iter()
+            .skip(self.index)					//start at the current index
             .filter(|&i| set.contains(i)) 		// we have to evict something that's in the cache
             .unique()							//Find only the next occurence of each item
             .last()								//evict the farthest in the future
