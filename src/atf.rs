@@ -28,11 +28,21 @@ enum Operation {
 /// This represents a single row of the csv.
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct OpRecord {
-    accessed_item_id: String,
+    accessed_item_id: u32,
     nanos_since_zero: u32, // TODO: should this be a float
     optype: Operation,
-    size: f64,
+    size: u32,
     cost: Vec<f64>,
+}
+
+impl From<OpRecord> for crate::GeneralModelItem {
+    fn from(record: OpRecord) -> Self {
+        Self::new(
+            record.accessed_item_id,
+            record.cost[0], // TODO: something better
+            record.size,
+        )
+    }
 }
 
 /// Parse a file-like object into a vector of oprecords.
@@ -64,10 +74,10 @@ mod tests {
         assert_eq!(
             out,
             vec![OpRecord {
-                accessed_item_id: "0".to_string(),
+                accessed_item_id: 0,
                 nanos_since_zero: 1,
                 optype: Operation::Read,
-                size: 1.0,
+                size: 1,
                 cost: vec![1.0],
             }],
         );
@@ -78,8 +88,8 @@ mod tests {
     #[test]
     fn multiline_parser() -> Result<(), csv::Error> {
         const DATA: &[u8] = b"# this is my cool header!
-1,2,R,4.5,7,6
-0,16,W,3.1,4,2.5
+1,2,R,4,7,6
+0,16,W,3,4,2.5
 1,4,R,3,2,1.2";
 
         let out = parse(DATA)?;
@@ -87,24 +97,24 @@ mod tests {
             out,
             vec![
                 OpRecord {
-                    accessed_item_id: "1".to_string(),
+                    accessed_item_id: 1,
                     nanos_since_zero: 2,
                     optype: Operation::Read,
-                    size: 4.5,
+                    size: 4,
                     cost: vec![7.0, 6.0],
                 },
                 OpRecord {
-                    accessed_item_id: "0".to_string(),
+                    accessed_item_id: 0,
                     nanos_since_zero: 16,
                     optype: Operation::Write,
-                    size: 3.1,
+                    size: 3,
                     cost: vec![4.0, 2.5],
                 },
                 OpRecord {
-                    accessed_item_id: "1".to_string(),
+                    accessed_item_id: 1,
                     nanos_since_zero: 4,
                     optype: Operation::Read,
-                    size: 3.0,
+                    size: 3,
                     cost: vec![2.0, 1.2],
                 },
             ],

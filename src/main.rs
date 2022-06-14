@@ -1,9 +1,11 @@
-use cache_sim::{Cache, Lfu, Trace};
+use std::error::Error;
+
+use cache_sim::{atf::parse, GeneralModelItem, Trace};
 
 // const INPUT: &str = include_str!("input.txt");
 
-fn main() {
-    let mut c = Cache::<Lfu>::new(3);
+fn main() -> Result<(), Box<dyn Error>> {
+    // let mut c = Cache::<Lfu>::new(3);
 
     // for i in INPUT.lines().map(|n| n.parse().unwrap()) {
     //     l.access(i);
@@ -11,8 +13,14 @@ fn main() {
     //     r.access(i);
     // }
 
-    let trace = Trace::from(vec![1, 0, 2, 2, 3]);
-    c.run_trace(&trace);
+    let trace = Trace::from(
+        parse(include_bytes!("traces/ycsb-sample.atf").as_slice())?
+            .into_iter()
+            .map(GeneralModelItem::from)
+            .collect::<Vec<_>>(),
+    );
 
-    dbg!(c.set());
+    dbg!(trace.stack_distances().inner());
+
+    Ok(())
 }
