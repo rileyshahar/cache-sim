@@ -15,6 +15,11 @@ pub trait ReplacementPolicy<I: Item> {
     fn replace(&mut self, set: &HashSet<I>, capacity: u32, next: I) -> HashSet<I>;
 }
 
+pub trait Tiebreaker<I: Item>: ReplacementPolicy<I> {
+    /// Pick a single item to evict.
+    fn tiebreak(&mut self, from: &HashSet<I>, size_to_free: u32) -> HashSet<I>;
+}
+
 /// The LRU replacement policy, which evicts the least recently used item.
 ///
 /// ```
@@ -48,6 +53,24 @@ impl<I: Item> ReplacementPolicy<I> for Lru<I> {
     fn replace(&mut self, set: &HashSet<I>, capacity: u32, next: I) -> HashSet<I> {
         self.update_state(set, capacity, next);
         HashSet::from([self.stack.remove(0)])
+    }
+}
+
+impl<I: Item> Tiebreaker<I> for Lru<I> {
+    fn tiebreak(&mut self, from: &HashSet<I>, size_to_free: u32) -> HashSet<I> {
+        let mut ret = HashSet::new();
+
+        while size_to_free > ret.iter().map(Item::size).sum() && ret.len() < from.len() {
+            ret.extend(
+                self.stack
+                    .iter()
+                    .filter(|&i| !ret.contains(i))
+                    .find(|i| from.contains(i)),
+            );
+        }
+
+        assert!(!ret.is_empty());
+        ret
     }
 }
 
@@ -143,9 +166,7 @@ impl<I: Item> ReplacementPolicy<I> for Mru<I> {
 
 /// The LFU replacement policy, which evicts the least frequently used item.
 ///
-/// LFU currently does not implement any tiebreaker protocol, meaning you should not treat the
-/// tiebreaker as deterministic (it's currently determined by the ordering of the underlying
-/// [`HashMap`], which is not guaranteed by the language).
+/// The tiebreaker defaults to Lru.
 ///
 /// ```
 /// # use std::collections::HashSet;
@@ -163,30 +184,44 @@ impl<I: Item> ReplacementPolicy<I> for Mru<I> {
 /// assert_eq!(c.set(), &HashSet::from([0, 2, 3]));
 /// ```
 #[derive(Default)]
-pub struct Lfu<I: Item = u32> {
+pub struct Lfu<I: Item = u32, T: Tiebreaker<I> = Lru> {
     counts: HashMap<I, u32>,
+    tiebreaker: T,
 }
 
-impl<I: Item> ReplacementPolicy<I> for Lfu<I> {
-    fn update_state(&mut self, _: &HashSet<I>, _: u32, next: I) {
+impl<I: Item, T: Tiebreaker<I>> ReplacementPolicy<I> for Lfu<I, T> {
+    fn update_state(&mut self, set: &HashSet<I>, capacity: u32, next: I) {
         *self.counts.entry(next).or_insert(0) += 1;
+        self.tiebreaker.update_state(set, capacity, next);
     }
 
     fn replace(&mut self, set: &HashSet<I>, capacity: u32, next: I) -> HashSet<I> {
         self.update_state(set, capacity, next);
-        HashSet::from([*self
+        let min = self
             .counts
             .iter()
             .filter(|&(i, _)| set.contains(i)) // we have to evict something that's in the cache
-            .min_by_key(|&(_, &count)| count) // find the minimum count of the remaining items
-            .expect("The frequency table is non-empty.")
-            .0])
+            .map(|(_, &count)| count)
+            .min()
+            .expect("The set is non-empty.");
+
+        self.tiebreaker.tiebreak(
+            &self
+                .counts
+                .iter()
+                .filter(|&(_, &count)| count == min)
+                .map(|(&i, _)| i)
+                .collect(),
+            1,
+        )
     }
 }
 
 /// The landlord replacement algotihm.
 ///
 /// Detailed in this paper: <https://arxiv.org/abs/cs/0205033>
+///
+/// The tiebreaker (for evicting multiple zero-credit items) defaults to Lru.
 ///
 /// ```
 /// # use std::collections::HashSet;
@@ -207,21 +242,23 @@ impl<I: Item> ReplacementPolicy<I> for Lfu<I> {
 ///
 /// assert_eq!(cache.set(), &HashSet::from([c, d]));
 /// ```
-pub struct Landlord<I: Item = GeneralModelItem> {
+pub struct Landlord<I: Item = GeneralModelItem, T: Tiebreaker<I> = Lru<GeneralModelItem>> {
     credit: HashMap<I, f64>,
     credit_increase: f64,
+    tiebreaker: T,
 }
 
-impl<I: Item> Default for Landlord<I> {
+impl<I: Item, T: Tiebreaker<I> + Default> Default for Landlord<I, T> {
     fn default() -> Self {
         Self {
             credit: HashMap::default(),
             credit_increase: 1.0,
+            tiebreaker: T::default(),
         }
     }
 }
 
-impl<I: Item> Landlord<I> {
+impl<I: Item, T: Tiebreaker<I> + Default> Landlord<I, T> {
     /// Instantiate a new landlord replacement policy.
     ///
     /// The `credit_increase` parameter represents the percentage of the gap between the current credit
@@ -233,12 +270,30 @@ impl<I: Item> Landlord<I> {
         Self {
             credit: HashMap::default(),
             credit_increase,
+            tiebreaker: T::default(),
         }
     }
 }
 
-impl<I: Item> ReplacementPolicy<I> for Landlord<I> {
-    fn update_state(&mut self, set: &HashSet<I>, _: u32, next: I) {
+impl<I: Item, T: Tiebreaker<I>> Landlord<I, T> {
+    /// Instantiate a new landlord replacement policy, with a specifically configured tiebreaker.
+    ///
+    /// The `credit_increase` parameter represents the percentage of the gap between the current credit
+    /// and maximum credit (cost) to increase an item's credit when it is hit. It should not be above
+    /// one. Higher values are closer to LRU, lower values are closer to FIFO. This defaults to 1,
+    /// and should generally be between 0 and 1.
+    #[must_use]
+    pub fn with_tiebreaker(tiebreaker: T, credit_increase: f64) -> Self {
+        Self {
+            credit: HashMap::default(),
+            credit_increase,
+            tiebreaker,
+        }
+    }
+}
+
+impl<I: Item, T: Tiebreaker<I>> ReplacementPolicy<I> for Landlord<I, T> {
+    fn update_state(&mut self, set: &HashSet<I>, capacity: u32, next: I) {
         // here we know that there is room in the cache, so we don't need to do the while loop in
         // the algorithm
         if set.contains(&next) {
@@ -251,6 +306,8 @@ impl<I: Item> ReplacementPolicy<I> for Landlord<I> {
         } else {
             self.credit.insert(next, next.cost());
         }
+
+        self.tiebreaker.update_state(set, capacity, next);
     }
 
     fn replace(&mut self, set: &HashSet<I>, capacity: u32, next: I) -> HashSet<I> {
@@ -285,9 +342,23 @@ impl<I: Item> ReplacementPolicy<I> for Landlord<I> {
             }
 
             // evict items with no credit
-            to_evict.extend(set.iter().filter(|i| {
-                abs_diff_eq!(self.credit.get(i).expect("The item is in the set."), &0.0)
-            }));
+            to_evict.extend(
+                self.tiebreaker.tiebreak(
+                    &set.iter()
+                        .filter(|&i| !to_evict.contains(i))
+                        .filter(|i| {
+                            abs_diff_eq!(self.credit.get(i).expect("The item is in the set."), &0.0)
+                        })
+                        .copied()
+                        .collect(),
+                    set.iter()
+                        .filter(|i| !to_evict.contains(*i))
+                        .map(Item::size)
+                        .sum::<u32>()
+                        + next.size()
+                        - capacity,
+                ),
+            );
         }
 
         self.update_state(set, capacity, next);
@@ -358,27 +429,25 @@ mod tests {
             cycle => 1, 2, 3;
     }
 
-    // mod lru {
-    //     use super::*;
+    mod landlord {
+        use super::*;
+        use crate::GeneralModelGenerator;
 
-    //     macro_rules! lru_integration_test {
-    //         ($name:ident: $($in:expr),* => $($out:expr),*) => {
-    //             #[test]
-    //             fn $name() {
-    //                 let mut c = Cache::<Lru>::new(3);
+        #[test]
+        fn replacement_policy() {
+            let mut cache = Cache::<Landlord, (), _>::new(3);
+            let mut gen = GeneralModelGenerator::new();
 
-    //                 $(
-    //                     c.access($in);
-    //                 )*
+            let a = gen.item(1.0, 1);
+            let b = gen.item(2.0, 2);
+            let c = gen.item(1.0, 1);
 
-    //                 assert_eq!(c.set(), &HashSet::from([$($out),*]));
-    //             }
-    //         };
-    //     }
+            cache.access(a);
+            cache.access(b);
+            cache.access(c);
 
-    //     lru_integration_test!(counting_up: 0, 1, 2, 3 => 1, 2, 3);
-    //     lru_integration_test!(repeated: 0, 0, 0, 0 => 0);
-    //     lru_integration_test!(one_repetition: 0, 1, 2, 0, 3 => 0, 2, 3);
-    //     lru_integration_test!(cycle: 0, 1, 2, 0, 1, 2, 0, 1, 2, 3, 3 => 1, 2, 3);
-    // }
+            // should evict a because LRU
+            assert_eq!(cache.set(), &HashSet::from([b, c]));
+        }
+    }
 }

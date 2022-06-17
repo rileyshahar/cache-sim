@@ -49,6 +49,22 @@ impl From<OpRecord> for crate::GeneralModelItem {
 ///
 /// # Errors
 /// If the csv does not conform to the `atf` standard.
+///
+/// # Example
+///
+/// Simple usage to get a trace (this will ignore all but the first cost column):
+/// ```no_run
+/// # fn main() -> Result<(), csv::Error> {
+/// use cache_sim::{atf::parse, Trace, GeneralModelItem};
+///
+/// let trace = Trace::from(
+///     parse(include_bytes!("traces/ycsb-sample.atf").as_slice())?
+///         .into_iter()
+///         .map(GeneralModelItem::from)
+///         .collect::<Vec<_>>(),
+/// );
+/// # Ok(())}
+/// ````
 pub fn parse<R: std::io::Read>(input: R) -> Result<Vec<OpRecord>, csv::Error> {
     let mut rdr = csv::ReaderBuilder::new()
         .has_headers(false)
@@ -56,8 +72,8 @@ pub fn parse<R: std::io::Read>(input: R) -> Result<Vec<OpRecord>, csv::Error> {
         .from_reader(input);
 
     rdr.deserialize()
-        // `Result` implements iterator, so when we collect this it will give us the first error if
-        // there are any errors, or else will give us the vector of [`OpRecord`]s.
+        // `Result` implements fromiterator, so when we collect this it will give us the first
+        // error if there are any errors, or else will give us the vector of [`OpRecord`]s.
         .collect()
 }
 
