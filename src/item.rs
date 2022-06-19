@@ -62,12 +62,16 @@ impl std::cmp::PartialEq for GeneralModelItem {
 impl std::cmp::Eq for GeneralModelItem {}
 
 impl std::fmt::Display for GeneralModelItem {
+	
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		/*
         write!(
             f,
             "{}: Size = {}, Cost = {}",
             self.uid, self.size, self.cost
         )
+        */
+        write!(f,"{}", self.uid)
     }
 }
 

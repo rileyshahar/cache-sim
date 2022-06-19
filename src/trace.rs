@@ -4,8 +4,9 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
 use itertools::Itertools;
+use fast_math::log2;
 
-use crate::{item::Item, stats::Stat};
+use crate::{item::Item, stats::Stat, condition::Condition, condition::NoCondition};
 
 /// A trace.
 #[derive(Debug, PartialEq, Eq, Hash, Default)]
@@ -20,22 +21,24 @@ impl<I: Item> From<Vec<I>> for Trace<I> {
 }
 
 impl<I: Item> Trace<I> {
-    /// Calculate the frequency historgram.
+    /// Calculate the frequency historgram based on a given condition.
     ///
     /// ```
     /// # use std::collections::HashMap;
-    /// # use cache_sim::Trace;
-    /// let frequencies = Trace::from(vec![0, 0, 1, 0, 3, 1]).frequency_histogram();
+    /// # use cache_sim::{Trace, NoCondition};
+    /// let frequencies = Trace::from(vec![0, 0, 1, 0, 3, 1]).frequency_histogram(NoCondition::default());
     /// assert_eq!(frequencies.get(&0), Some(&3));
     /// assert_eq!(frequencies.get(&1), Some(&2));
     /// assert_eq!(frequencies.get(&2), None);
     /// ```
     #[must_use]
-    pub fn frequency_histogram(&self) -> HashMap<I, usize> {
+    pub fn frequency_histogram(&self, mut condition: impl Condition<I>) -> HashMap<I, usize> {
         let mut freqs = HashMap::default();
 
-        for &i in &self.inner {
-            *freqs.entry(i).or_insert(0) += 1;
+        for i in 0..self.inner.len() {
+			if condition.check(self,i){
+            	*freqs.entry(self.inner[i]).or_insert(0) += 1;
+            }
         }
 
         freqs
@@ -259,6 +262,13 @@ impl StackDistance {
     }
 }
 
+/// Returns the entropy of a given distribution.
+pub fn entropy<I: Item>(histogram: HashMap<I,usize>) -> f32{
+	let total: f32 = histogram.values().sum::<usize>() as f32;
+	-histogram.values().map(|&i| (i as f32/total)*(log2(i as f32/total))).sum::<f32>()
+	
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -327,7 +337,7 @@ mod tests {
             ($name:ident: $($in:expr),* => $($out:expr),*) => {
                 #[test]
                 fn $name() {
-                    assert_eq!(Trace::from(vec![$($in),*]).frequency_histogram(), HashMap::from([$($out),*]))
+                    assert_eq!(Trace::from(vec![$($in),*]).frequency_histogram(NoCondition::default()), HashMap::from([$($out),*]))
                 }
             };
         }
