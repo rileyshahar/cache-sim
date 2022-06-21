@@ -31,7 +31,7 @@ impl<I: Item> Trace<I> {
     /// assert_eq!(frequencies.get(&2), None);
     /// ```
     #[must_use]
-    pub fn frequency_histogram(&self, mut condition: impl Condition<I>) -> HashMap<I, u32> {
+    pub fn frequency_histogram(&self, condition: &impl Condition<I>) -> HashMap<I, u32> {
         let mut freqs = HashMap::default();
 
         for i in 0..self.inner.len() {
@@ -341,7 +341,7 @@ mod tests {
             ($name:ident: $($in:expr),* => $($out:expr),*) => {
                 #[test]
                 fn $name() {
-                    assert_eq!(Trace::from(vec![$($in),*]).frequency_histogram(NoCondition::default()), HashMap::from([$($out),*]))
+                    assert_eq!(Trace::from(vec![$($in),*]).frequency_histogram(&NoCondition::default()), HashMap::from([$($out),*]))
                 }
             };
         }
