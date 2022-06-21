@@ -4,9 +4,8 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
 use itertools::Itertools;
-use fast_math::log2;
 
-use crate::{item::Item, stats::Stat, condition::Condition, condition::NoCondition};
+use crate::{condition::Condition, item::Item, stats::Stat};
 
 /// A trace.
 #[derive(Debug, PartialEq, Eq, Hash, Default)]
@@ -32,12 +31,12 @@ impl<I: Item> Trace<I> {
     /// assert_eq!(frequencies.get(&2), None);
     /// ```
     #[must_use]
-    pub fn frequency_histogram(&self, mut condition: impl Condition<I>) -> HashMap<I, usize> {
+    pub fn frequency_histogram(&self, mut condition: impl Condition<I>) -> HashMap<I, u32> {
         let mut freqs = HashMap::default();
 
         for i in 0..self.inner.len() {
-			if condition.check(self,i){
-            	*freqs.entry(self.inner[i]).or_insert(0) += 1;
+            if condition.check(self, i) {
+                *freqs.entry(self.inner[i]).or_insert(0) += 1;
             }
         }
 
@@ -263,10 +262,13 @@ impl StackDistance {
 }
 
 /// Returns the entropy of a given distribution.
-pub fn entropy<I: Item>(histogram: HashMap<I,usize>) -> f32{
-	let total: f32 = histogram.values().sum::<usize>() as f32;
-	-histogram.values().map(|&i| (i as f32/total)*(log2(i as f32/total))).sum::<f32>()
-	
+#[must_use]
+pub fn entropy<I: Item, H: std::hash::BuildHasher>(histogram: &HashMap<I, u32, H>) -> f64 {
+    let total = f64::from(histogram.values().sum::<u32>());
+    -histogram
+        .values()
+        .map(|&i| (f64::from(i) / total) * ((f64::from(i) / total).log2()))
+        .sum::<f64>()
 }
 
 #[cfg(test)]
@@ -332,6 +334,8 @@ mod tests {
 
     mod frequency {
         use super::*;
+
+        use crate::condition::NoCondition;
 
         macro_rules! frequency_test {
             ($name:ident: $($in:expr),* => $($out:expr),*) => {

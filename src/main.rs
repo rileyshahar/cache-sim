@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use cache_sim::{atf::parse, GeneralModelItem, Trace, LastNItems, trace::entropy};
+use cache_sim::{atf::parse, trace::entropy, GeneralModelItem, LastNItems, Trace};
 
 // const INPUT: &str = include_str!("input.txt");
 
@@ -19,14 +19,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             .map(GeneralModelItem::from)
             .collect::<Vec<_>>(),
     );
-	
-	let condition = LastNItems::new(trace.inner()[0..2].to_vec());
-	let histogram = trace.frequency_histogram(condition);
-	
-    for (item,count) in &histogram{
-		println!("{},{}",item,count);
-	}
-	println!("{}",entropy(histogram));
+
+    let condition = LastNItems::new(trace.inner()[0..2].to_vec());
+    let histogram = trace.frequency_histogram(condition);
+
+    for (item, count) in &histogram {
+        println!("{},{}", item, count);
+    }
+    println!("{}", entropy(&histogram));
 
     Ok(())
 }
+

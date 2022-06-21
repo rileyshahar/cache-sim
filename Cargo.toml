@@ -11,5 +11,4 @@ csv = "1.1.6"
 impl-trait-for-tuples = "0.2.2"
 itertools = "0.10"
 rand = "0.8.5"
-fast-math = "0.1"
 serde = { version = "1.0.137", features = ["derive"] }
