@@ -1,6 +1,4 @@
-use std::error::Error;
-
-use cache_sim::{atf::parse, trace::entropy, GeneralModelItem, LastNItems, Trace};
+use cache_sim::{trace::entropy, Trace};
 
 // const INPUT: &str = include_str!("input.txt");
 

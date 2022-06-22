@@ -25,7 +25,7 @@ impl<I: Item> Trace<I> {
     /// ```
     /// # use std::collections::HashMap;
     /// # use cache_sim::{Trace, NoCondition};
-    /// let frequencies = Trace::from(vec![0, 0, 1, 0, 3, 1]).frequency_histogram(NoCondition::default());
+    /// let frequencies = Trace::from(vec![0, 0, 1, 0, 3, 1]).frequency_histogram(&NoCondition);
     /// assert_eq!(frequencies.get(&0), Some(&3));
     /// assert_eq!(frequencies.get(&1), Some(&2));
     /// assert_eq!(frequencies.get(&2), None);

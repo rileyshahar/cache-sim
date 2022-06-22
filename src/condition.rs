@@ -51,3 +51,41 @@ impl<I: Item, F: Fn(&Trace<I>, usize) -> bool> Condition<I> for F {
         self(trace, index)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod no_condition {
+        use super::*;
+
+        macro_rules! test_case {
+            // don't need to take an output, since no condition should always return true
+            ( $name:ident: $($in:expr),*; $index:expr ) => {
+                #[test]
+                fn $name() {
+                    assert!(NoCondition.check(&Trace::from(vec![$($in),*]), $index));
+                }
+            };
+        }
+
+        test_case!(counting_up: 1, 2, 3; 0);
+        test_case!(zeros: 0, 0, 0; 2);
+        test_case!(noise: 1, 0, 5, 3, 17; 3);
+    }
+
+    mod closure_condition {
+        use super::*;
+
+        macro_rules! test_case {
+            ( $name:ident: $condition:expr, on $($in:expr),*; $index:expr => $out:expr ) => {
+                #[test]
+                fn $name() {
+                    assert_eq!($condition.check(&Trace::from(vec![$($in),*]), $index), $out);
+                }
+            }
+        }
+
+        test_case!(equals_zero: |t: &Trace<_>, i| t.inner()[i] == 0, on 1, 2, 0; 2 => true);
+    }
+}

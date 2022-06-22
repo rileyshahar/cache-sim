@@ -104,6 +104,6 @@ use cache_sim::Trace;
 use cache_sim::condition::NoCondition;
 
 let trace = Trace::from(vec![0, 0, 1, 0, 3, 1]);
-let frequencies = trace.frequency_histogram(NoCondition);
+let frequencies = trace.frequency_histogram(&NoCondition);
 assert_eq!(frequencies.get(&0), Some(&3));
 ```
