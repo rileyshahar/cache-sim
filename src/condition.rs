@@ -39,7 +39,7 @@ impl<I: Item> LastNItems<I> {
 impl<I: Item> Condition<I> for LastNItems<I> {
     fn check(&self, trace: &Trace<I>, index: usize) -> bool {
         if index >= self.items.len() {
-            trace.inner()[(index - self.items.len())..index].to_vec() == self.items
+            trace.inner()[(index - self.items.len())..index] == self.items
         } else {
             false
         }
