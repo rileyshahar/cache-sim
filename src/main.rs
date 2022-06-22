@@ -20,8 +20,7 @@ fn main() {
 
     let trace = Trace::from(vec![0, 0, 1, 1, 2]);
 
-    let histogram = trace
-        .frequency_histogram(&|t: &Trace<u32>, i| i != 0 && t.inner()[i] == t.inner()[i - 1] + 1);
+    let histogram = trace.frequency_histogram(&|t: &Trace<u32>, i| i != 0 && t[i] == t[i - 1] + 1);
 
     for (item, count) in &histogram {
         println!("{},{}", item, count);

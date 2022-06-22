@@ -62,7 +62,7 @@ impl<I: Item> Trace<I> {
 
         let mut stack: Vec<&I> = Vec::new();
 
-        for (i, curr) in self.inner().iter().enumerate() {
+        for (i, curr) in self.iter().enumerate() {
             if let Some(position) = stack.iter().position(|n| n == &curr) {
                 // skip position + 1, then sum all the sizes until the top of the stack
                 // this is our notion of size-aware stack distance, which generalizes the normal
@@ -135,6 +135,19 @@ impl<I: Item> FromIterator<I> for Trace<I> {
         Self {
             inner: Vec::from_iter(iter),
         }
+    }
+}
+
+// Allows indexing the trace with any type that could index the underlying vector, e.x. with usizes
+// or `Range`s from the standard library.
+impl<I: Item, Idx> std::ops::Index<Idx> for Trace<I>
+where
+    Idx: std::slice::SliceIndex<[I]>,
+{
+    type Output = Idx::Output;
+
+    fn index(&self, index: Idx) -> &Self::Output {
+        &self.inner[index]
     }
 }
 

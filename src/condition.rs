@@ -39,7 +39,7 @@ impl<I: Item> LastNItems<I> {
 impl<I: Item> Condition<I> for LastNItems<I> {
     fn check(&self, trace: &Trace<I>, index: usize) -> bool {
         if index >= self.items.len() {
-            trace.inner()[(index - self.items.len())..index] == self.items
+            trace[(index - self.items.len())..index] == self.items
         } else {
             false
         }
@@ -86,6 +86,6 @@ mod tests {
             }
         }
 
-        test_case!(equals_zero: |t: &Trace<_>, i| t.inner()[i] == 0, on 1, 2, 0; 2 => true);
+        test_case!(equals_zero: |t: &Trace<_>, i| t[i] == 0, on 1, 2, 0; 2 => true);
     }
 }
