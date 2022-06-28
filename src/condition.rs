@@ -87,5 +87,28 @@ mod tests {
         }
 
         test_case!(equals_zero: |t: &Trace<_>, i| t[i] == 0, on 1, 2, 0; 2 => true);
+        test_case!(after_one: |t: &Trace<_>, i| i>0 && t[i-1] == 1, on 1, 0, 1, 2; 3 => true);
+        test_case!(one_greater: |t: &Trace<_>, i| i>0 && t[i-1] + 1 == t[i], on 0, 2, 0, 1; 3 => true);
+        test_case!(wrong_condition: |t: &Trace<_>, i| i>0 && t[i-1] + 1 == t[i], on 0, 2, 0, 1; 2 => false);
     }
+    
+    mod last_n_condition {
+        use super::*;
+
+        macro_rules! test_case {
+            ( $name:ident: $($seq:expr),*; on $($in:expr),*; $index:expr => $out:expr ) => {
+                #[test]
+                fn $name() {
+					let condition = LastNItems::new(vec![$($seq),*]);
+                    assert_eq!(condition.check(&Trace::from(vec![$($in),*]), $index), $out);
+                }
+            }
+        }
+
+        test_case!(one_zero: 0; on 1, 0, 2; 2 => true);
+        test_case!(incrementing: 1, 2; on 0, 1, 2, 3; 3 => true);
+        test_case!(repeated: 1; on 1, 2, 1, 0; 3 => true);
+        test_case!(wrong_condition: 3; on 1, 2, 0, 1; 2 => false);
+    }
+    
 }

@@ -1,4 +1,4 @@
-use cache_sim::{trace::entropy, Trace};
+use cache_sim::{trace::entropy, Trace, NoCondition};
 
 // const INPUT: &str = include_str!("input.txt");
 
@@ -18,9 +18,9 @@ fn main() {
     //         .collect::<Vec<_>>(),
     // );
 
-    let trace = Trace::from(vec![0, 0, 1, 1, 2]);
+    let trace = Trace::from(vec![0, 1, 2, 0, 2, 0, 0, 3]);
 
-    let histogram = trace.frequency_histogram(&|t: &Trace<u32>, i| i != 0 && t[i] == t[i - 1] + 1);
+    let histogram = trace.frequency_histogram(&NoCondition);
 
     for (item, count) in &histogram {
         println!("{},{}", item, count);
