@@ -8,7 +8,6 @@ use crate::item::Item;
 use crate::trace::StackDistance;
 
 struct OutputCsvRow<'a> {
-    // TODO: does this need to be owned
     name: &'a str,
     stats: &'a [u32],
     stack_distances: &'a [usize],
@@ -64,7 +63,7 @@ pub fn to_csv(
 struct FreqHistRow<'a, I: Item, H: std::hash::BuildHasher> {
     // TODO: does this need to be owned
     name: &'a str,
-    entropy: &'a f64,
+    entropy: f64,
     histogram: &'a HashMap<I, u32, H>,
     items: &'a [I],
 }
@@ -99,7 +98,7 @@ impl<I: Item, H: std::hash::BuildHasher> Serialize for FreqHistRow<'_, I, H> {
 /// If the writing fails.
 pub fn histogram_out<I: Item, W: Write, H: std::hash::BuildHasher>(
     name: &str,
-    entropy: &f64,
+    entropy: f64,
     histogram: &HashMap<I, u32, H>,
     items: &[I],
     writer: W,

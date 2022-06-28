@@ -52,6 +52,16 @@ impl<I: Item, F: Fn(&Trace<I>, usize) -> bool> Condition<I> for F {
     }
 }
 
+// we need to implement this so we can call methods that expct `Condition` on type-erased condition
+// trait objects; see `Trace::write_conditional_frequencies` for a motivating example.
+//
+// TODO: is there a non terrible way to solve this
+impl<I: Item> Condition<I> for Box<dyn Condition<I>> {
+    fn check(&self, trace: &Trace<I>, index: usize) -> bool {
+        self.as_ref().check(trace, index)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,7 +101,7 @@ mod tests {
         test_case!(one_greater: |t: &Trace<_>, i| i>0 && t[i-1] + 1 == t[i], on 0, 2, 0, 1; 3 => true);
         test_case!(wrong_condition: |t: &Trace<_>, i| i>0 && t[i-1] + 1 == t[i], on 0, 2, 0, 1; 2 => false);
     }
-    
+
     mod last_n_condition {
         use super::*;
 
@@ -110,5 +120,4 @@ mod tests {
         test_case!(repeated: 1; on 1, 2, 1, 0; 3 => true);
         test_case!(wrong_condition: 3; on 1, 2, 0, 1; 2 => false);
     }
-    
 }

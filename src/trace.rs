@@ -5,6 +5,7 @@ use std::fmt::Display;
 
 use itertools::Itertools;
 
+use crate::output::histogram_out;
 use crate::{condition::Condition, item::Item, stats::Stat};
 
 /// A trace.
@@ -76,6 +77,32 @@ impl<I: Item> Trace<I> {
         }
 
         StackDistance { inner: distances }
+    }
+
+    /// Write the conditional frequencies for each condition to the output stream.
+    ///
+    /// Writer is a function that can give us a writer; ideally it should return a handle to the
+    /// same underlying output stream each time.
+    ///
+    /// # Errors
+    /// If writing to the csv fails.
+    ///
+    /// TODO: figure out a non-boxed return type
+    pub fn write_conditional_frequencies<W: std::io::Write>(
+        &self,
+        conditions: HashMap<&str, Box<dyn Condition<I>>>,
+        writer: impl Fn() -> anyhow::Result<W>,
+    ) -> anyhow::Result<()> {
+        // TODO: update this if we write a more efficient way to get frequencies for different
+        // conditions
+        let items = self.iter().unique().copied().collect::<Vec<_>>();
+
+        for (name, condition) in conditions {
+            let histogram = self.frequency_histogram(&condition);
+            histogram_out(name, entropy(&histogram), &histogram, &items, writer()?)?;
+        }
+
+        Ok(())
     }
 
     pub fn iter(&self) -> std::slice::Iter<I> {
@@ -365,7 +392,7 @@ mod tests {
         frequency_test!(one_repeated: 1, 2, 3, 1 => (1, 2), (2, 1), (3, 1));
         // frequency_test!(empty: => );
     }
-    
+
     mod entropy {
         use super::*;
 
