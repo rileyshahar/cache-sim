@@ -365,4 +365,24 @@ mod tests {
         frequency_test!(one_repeated: 1, 2, 3, 1 => (1, 2), (2, 1), (3, 1));
         // frequency_test!(empty: => );
     }
+    
+    mod entropy {
+        use super::*;
+
+        use crate::condition::NoCondition;
+
+        macro_rules! entropy_test {
+            ($name:ident: $($in:expr),* => $out:expr) => {
+                #[test]
+                fn $name() {
+                    assert!((entropy(&Trace::from(vec![$($in),*]).frequency_histogram(&NoCondition::default())) - $out).abs() <= 0.0001)
+                }
+            };
+        }
+
+        entropy_test!(one_item: 0,0,0,0 => 0.0);
+        entropy_test!(basic_uniform: 0,1,1,0,1,0 => 1.0);
+        entropy_test!(unbalanced: 0,1,2,0,2,0,0,3 => 1.75);
+        entropy_test!(precise_value: 0,1,2,0,2,0,0 => 1.37878);
+    }
 }
