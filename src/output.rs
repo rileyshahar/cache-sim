@@ -4,10 +4,8 @@ use serde::{ser::SerializeSeq, Serialize};
 use std::collections::HashMap;
 use std::io::Write;
 
-
-
-use crate::trace::StackDistance;
 use crate::item::Item;
+use crate::trace::StackDistance;
 
 struct OutputCsvRow<'a> {
     // TODO: does this need to be owned
@@ -63,51 +61,54 @@ pub fn to_csv(
     wtr.serialize(output)
 }
 
-struct FreqHistRow<'a> {
+struct FreqHistRow<'a, I: Item, H: std::hash::BuildHasher> {
     // TODO: does this need to be owned
     name: &'a str,
     entropy: &'a f64,
-    frequencies: &'a [u32],
+    histogram: &'a HashMap<I, u32, H>,
+    items: &'a [I],
 }
 
-impl Serialize for FreqHistRow<'_> {
+impl<I: Item, H: std::hash::BuildHasher> Serialize for FreqHistRow<'_, I, H> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let mut seq =
-            serializer.serialize_seq(Some(2 + self.frequencies.len()))?;
+        let mut seq = serializer.serialize_seq(Some(2 + self.items.len()))?;
 
         seq.serialize_element(self.name)?;
         seq.serialize_element(&self.entropy)?;
-        
-        for freq in self.frequencies {
-            seq.serialize_element(freq)?;
+
+        for item in self.items {
+            if let Some(freq) = self.histogram.get(item) {
+                seq.serialize_element(freq)?;
+            } else {
+                seq.serialize_element(&0_usize)?;
+            }
         }
         seq.end()
     }
 }
 
-pub fn histogram_out<I: Item, W: Write>(
+/// Write a histogram to a row of a csv file.
+///
+/// The order of the `items` slice determines the order in which frequencies will be written to the
+/// csv.
+///
+/// # Errors
+/// If the writing fails.
+pub fn histogram_out<I: Item, W: Write, H: std::hash::BuildHasher>(
     name: &str,
     entropy: &f64,
-    histogram: &HashMap<I, u32>,
-    items: &Vec<I>,
+    histogram: &HashMap<I, u32, H>,
+    items: &[I],
     writer: W,
 ) -> Result<(), csv::Error> {
-	let mut frequencies = Vec::<u32>::default();
-	for item in items{
-		if let Some(freq) = histogram.get(item){
-			frequencies.push(*freq);
-		}
-		else{
-			frequencies.push(0);
-		}
-	}
     let output = FreqHistRow {
         name,
         entropy,
-        frequencies: &frequencies[..],
+        histogram,
+        items,
     };
 
     let mut wtr = csv::Writer::from_writer(writer);
