@@ -17,7 +17,8 @@ impl Serialize for OutputCsvRow<'_> {
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.stack_distances.len()))?;
+        let mut seq =
+            serializer.serialize_seq(Some(2 + self.stats.len() + self.stack_distances.len()))?;
 
         seq.serialize_element(self.name)?;
         for stat in self.stats {
