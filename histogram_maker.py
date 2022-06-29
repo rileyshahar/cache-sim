@@ -30,5 +30,5 @@ else:
         d.plot.bar(x='col1', y='col2', rot=0)
         plt.ylabel("Frequency")
         plt.xlabel(f"Item   Entropy: {entr}")
-        plt.title(str(list(row)[0]).split(",")[0])
+        plt.title(y[0])
         plt.show()
