@@ -322,11 +322,16 @@ impl<I: Item, T: Tiebreaker<I>> ReplacementPolicy<I> for Landlord<I, T> {
             > capacity
         {
             // have to compute min cost by hand because of limitations with float
-            let mut current_min_cost = f64::MAX;
+            let mut current_delta = f64::MAX;
             let mut current_min_item = None;
             for item in set {
-                if item.cost() < current_min_cost {
-                    current_min_cost = item.cost();
+                let item_delta = *self
+                    .credit
+                    .get(item)
+                    .expect("Items in the set have a credit.")
+                    / f64::from(item.size());
+                if item_delta < current_delta {
+                    current_delta = item_delta;
                     current_min_item = Some(item);
                 }
             }
@@ -434,7 +439,7 @@ mod tests {
         use crate::GeneralModelGenerator;
 
         #[test]
-        fn replacement_policy() {
+        fn lru_tiebreaker() {
             let mut cache = Cache::<Landlord, (), _>::new(3);
             let mut gen = GeneralModelGenerator::new();
 
@@ -448,6 +453,29 @@ mod tests {
 
             // should evict a because LRU
             assert_eq!(cache.set(), &HashSet::from([b, c]));
+        }
+
+        #[test]
+        fn credit_not_cost() {
+            // we had a bug where we would compute delta with the cost, not the credit. this tests
+            // that that is fixed.
+            let mut cache = Cache::<Landlord, (), _>::new(3);
+            let mut gen = GeneralModelGenerator::new();
+
+            let itm_a = gen.item(2.0, 1);
+            let itm_b = gen.item(3.0, 1);
+            let itm_c = gen.item(3.0, 1);
+            let itm_z = gen.item(2.0, 1);
+            let itm_d = gen.item(1.0, 1);
+
+            cache.access(itm_a);
+            cache.access(itm_b);
+            cache.access(itm_c);
+            cache.access(itm_z);
+            cache.access(itm_d);
+            cache.access(itm_a);
+
+            assert_eq!(cache.set(), &HashSet::from([itm_a, itm_d, itm_z]));
         }
     }
 }
