@@ -114,3 +114,34 @@ pub fn histogram_out<I: Item, W: Write, H: std::hash::BuildHasher>(
 
     wtr.serialize(output)
 }
+
+struct HeaderRow<'a> {
+    labels: &'a [String],
+}
+
+impl Serialize for HeaderRow<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.labels.len()))?;
+
+        for label in self.labels {
+			seq.serialize_element(label)?;
+        }
+        seq.end()
+    }
+}
+
+pub fn write_header<W: Write>(
+    labels: &[String],
+    writer: W,
+) -> Result<(), csv::Error> {
+    let output = HeaderRow {
+        labels,
+    };
+
+    let mut wtr = csv::Writer::from_writer(writer);
+
+    wtr.serialize(output)
+}

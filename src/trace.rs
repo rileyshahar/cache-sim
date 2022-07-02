@@ -6,6 +6,7 @@ use std::fmt::Display;
 use itertools::Itertools;
 
 use crate::output::histogram_out;
+use crate::output::write_header;
 use crate::{condition::Condition, item::Item, stats::Stat};
 
 /// A trace.
@@ -90,16 +91,23 @@ impl<I: Item> Trace<I> {
     /// TODO: figure out a non-boxed return type
     pub fn write_conditional_frequencies<W: std::io::Write>(
         &self,
-        conditions: HashMap<&str, Box<dyn Condition<I>>>,
+        conditions: HashMap<String, Box<dyn Condition<I>>>,
         writer: impl Fn() -> anyhow::Result<W>,
     ) -> anyhow::Result<()> {
         // TODO: update this if we write a more efficient way to get frequencies for different
         // conditions
         let items = self.iter().unique().copied().collect::<Vec<_>>();
-
+		
+		//write header row
+		let mut labels = vec![String::from("Name"),String::from("Entropy")];
+		for item in &items{
+			labels.push(item.to_string());
+		}
+		write_header(&labels,writer()?)?;
+		
         for (name, condition) in conditions {
             let histogram = self.frequency_histogram(&condition);
-            histogram_out(name, entropy(&histogram), &histogram, &items, writer()?)?;
+            histogram_out(&name, entropy(&histogram), &histogram, &items, writer()?)?;
         }
 
         Ok(())

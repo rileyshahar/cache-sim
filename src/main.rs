@@ -1,8 +1,9 @@
 use cache_sim::condition::Condition;
 use std::collections::HashMap;
 use std::fs::File;
+use itertools::Itertools;
 
-use cache_sim::{atf::parse, GeneralModelItem, NoCondition, Trace};
+use cache_sim::{atf::parse, GeneralModelItem, NoCondition, Trace, LastNItems};
 
 fn main() -> anyhow::Result<()> {
     let trace = Trace::from(
@@ -16,16 +17,25 @@ fn main() -> anyhow::Result<()> {
 
     // to_csv("YCSB Sample", &[], &stack_distances)?;
 
-    let file = File::create("test.csv")?;
-    let mut conditions: HashMap<&str, Box<dyn Condition<GeneralModelItem>>> =
+    let file = File::create("histograms.csv")?;
+    let mut conditions: HashMap<String, Box<dyn Condition<GeneralModelItem>>> =
         HashMap::with_capacity(2);
 
     // TODO: is there a way to statically create a hashmap with type-erased values?
-    conditions.insert("NoCondition", Box::new(NoCondition));
+    conditions.insert(String::from("NoCondition"), Box::new(NoCondition));
     conditions.insert(
-        "EqualsPrevious",
+        String::from("EqualsPrevious"),
         Box::new(|t: &Trace<_>, i| i > 0 && t[i - 1] == t[i]),
     );
+    
+    for item in trace.iter().unique().copied().collect::<Vec<_>>(){
+		let name = format!("After{}",item.to_string());
+		conditions.insert(
+        name,
+        Box::new(LastNItems::new(vec![item])),
+    );
+	}
+	dbg!(conditions.len());
 
     trace.write_conditional_frequencies(conditions, || Ok(file.try_clone()?))?;
 
