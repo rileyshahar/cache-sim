@@ -9,7 +9,7 @@ use crate::trace::StackDistance;
 
 struct OutputCsvRow<'a> {
     name: &'a str,
-    stats: &'a [u32],
+    stats: &'a [f64],
     stack_distances: &'a [usize],
     infinities: usize,
 }
@@ -24,7 +24,7 @@ impl Serialize for OutputCsvRow<'_> {
 
         seq.serialize_element(self.name)?;
         for stat in self.stats {
-            seq.serialize_element(stat)?;
+            seq.serialize_element(&format!("{}",stat))?;
         }
 
         seq.serialize_element(&self.infinities)?;
@@ -42,10 +42,11 @@ impl Serialize for OutputCsvRow<'_> {
 ///
 /// # Errors
 /// If writing fails, for example if the output buffer is closed by the OS.
-pub fn to_csv(
+pub fn to_csv<W: Write>(
     name: &str,
-    stats: &[u32],
+    stats: &[f64],
     stack_distances: &StackDistance,
+    writer: W,
 ) -> Result<(), csv::Error> {
     let (stack_distances, infinities) = stack_distances.histogram();
     let output = OutputCsvRow {
@@ -55,7 +56,7 @@ pub fn to_csv(
         infinities,
     };
 
-    let mut wtr = csv::Writer::from_writer(std::io::stdout());
+    let mut wtr = csv::Writer::from_writer(writer);
 
     wtr.serialize(output)
 }
@@ -76,7 +77,7 @@ impl<I: Item, H: std::hash::BuildHasher> Serialize for FreqHistRow<'_, I, H> {
         let mut seq = serializer.serialize_seq(Some(2 + self.items.len()))?;
 
         seq.serialize_element(self.name)?;
-        seq.serialize_element(&self.entropy)?;
+        seq.serialize_element(&format!("{:.5}",self.entropy))?;
 
         for item in self.items {
             if let Some(freq) = self.histogram.get(item) {

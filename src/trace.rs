@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::output::histogram_out;
 use crate::output::write_header;
-use crate::{condition::Condition, item::Item, stats::Stat};
+use crate::{condition::Condition, item::Item, stats::Stat, condition::NoCondition, condition::LastNItems};
 
 /// A trace.
 #[derive(Debug, PartialEq, Eq, Hash, Default)]
@@ -112,6 +112,25 @@ impl<I: Item> Trace<I> {
 
         Ok(())
     }
+    
+    /// Calculates the conditional entropy of an item, conditioned on the last single item.
+	/// 
+	/// This value is the sum over every item of the entropy of the distribution of items that
+	/// follow it, weighted by the frequency of the condition.
+	/// 
+	/// TODO: allow longer conditons
+    pub fn average_entropy(&self) -> f64{
+		let items = self.iter().unique().copied().collect::<Vec<_>>();
+		let frequencies = self.frequency_histogram(&NoCondition);
+		let mut sum: f64 = 0.0;
+		
+		for item in items{
+			if let Some(&count) = frequencies.get(&item){
+				sum += ((count as f64)/(self.len() as f64))*entropy(&self.frequency_histogram(&LastNItems::new(vec![item])));
+			}
+		}
+		sum
+	}
 
     pub fn iter(&self) -> std::slice::Iter<I> {
         self.inner.iter()
