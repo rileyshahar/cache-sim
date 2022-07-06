@@ -44,6 +44,21 @@ impl<I: Item> Trace<I> {
 
         freqs
     }
+    /*
+    pub fn frequency_histogram_many(&self, conditions: &HashMap<String, Box<dyn Condition<I>>>) -> HashMap<String, HashMap<I, u32>> {
+        let mut dists = HashMap::default();
+
+        for i in 0..self.inner.len() {
+			for (name, condition) in conditions{
+            	if condition.check(self, i) {
+                	*dists.entry(name).or_insert(HashMap::default()).entry(self.inner[i]).or_insert(0) += 1;
+            	}
+            }
+        }
+
+        dists
+    }
+    */
 
     /// Calculate the stack distances.
     ///
@@ -70,7 +85,7 @@ impl<I: Item> Trace<I> {
                 // this is our notion of size-aware stack distance, which generalizes the normal
                 // version from the paging model
                 
-                distances[i] = Some(stack.iter().skip(position + 1).map(|i| i.size()).sum());
+                distances[i] = Some(stack.iter().skip(position + 1).map(|i| i.size()).fold(0, |sum,val| if sum < 4000000000 {sum + val} else{sum}));
                 stack.remove(position);
             } else {
                 distances[i] = None;
@@ -106,8 +121,15 @@ impl<I: Item> Trace<I> {
 		}
 		write_header(&labels,writer()?)?;
 		
+		/*let histograms = self.frequency_histogram_many(&conditions);
+		
+        for (name, histogram) in histograms {
+            histogram_out(&name, entropy(&histogram), &histogram, &items, writer()?)?;
+        }
+        */
+        
         for (name, condition) in conditions {
-            let histogram = self.frequency_histogram(&condition);
+			let histogram = self.frequency_histogram(&condition);
             histogram_out(&name, entropy(&histogram), &histogram, &items, writer()?)?;
         }
 

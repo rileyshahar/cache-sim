@@ -7,7 +7,7 @@ use cache_sim::{atf::parse, output::to_csv, GeneralModelItem, NoCondition, Trace
 
 fn main() -> anyhow::Result<()> {
     let trace = Trace::from(
-        parse(include_bytes!("traces/systor17/testLUN.atf").as_slice())?
+        parse(include_bytes!("traces/systor17/2016021709-LUN4.atf").as_slice())?
             .into_iter()
             .map(GeneralModelItem::from)
             .collect::<Vec<_>>(),
@@ -20,12 +20,12 @@ fn main() -> anyhow::Result<()> {
     let stack_distances = Trace::from(vec![0,0]).stack_distances();
     dbg!("stack dists done");
 	
-    to_csv("testLUN", &[trace.average_entropy()], &stack_distances, record_file)?;
+    to_csv("2016021709-LUN4", &[trace.average_entropy()], &stack_distances, record_file)?;
 
 	
 	/*
 	// Output frequency histograms
-    let file = File::create("src/histograms/testLUN-histograms.csv")?;
+    let file = File::create("src/histograms/2016021708-LUN3-histograms.csv")?;
     let mut conditions: HashMap<String, Box<dyn Condition<GeneralModelItem>>> =
         HashMap::with_capacity(2);
 
