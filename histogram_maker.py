@@ -21,12 +21,13 @@ if traceOrNgram == 'T':
 else:
     for index, row in df.iterrows():
         x = list(df.head())
-        print(x)
         y = list(row)
-        print(y)
         entr = y[1]
+        d['col 1'] = df['col 1'].replace({0:np.nan})
         d = {'col1':x[2:] , 'col2': y[2:]}
         d = pd.DataFrame.from_dict(d)
+        d['col 1'] = d['col 1'].replace({0:np.nan})
+        d['col 2'] = d['col 2'].replace({0:np.nan})
         d.plot.bar(x='col1', y='col2', rot=0)
         plt.ylabel("Frequency")
         plt.xlabel(f"Item   Entropy: {entr}")
