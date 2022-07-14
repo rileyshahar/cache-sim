@@ -1,5 +1,10 @@
 """Script for generating random atf files, with bimodal behavior"""
 #Call using python3 modal_trace_generator.py [filename without extension] [mode type (f,s,d)] [number of elements] [length of mode]
+#I have been using 200 elements and 1600 accesses per mode as a reference
+#f = modal frequency; each mode draws from the same set of elements with different frequencies
+#d = distinct elements; each mode has a completely different set of elements and frequencies
+#s = subset; second mode uses a subset of the first mode's elements, with same relative frequencies
+#outputs 3 atf files in the parent directory - each half and the full trace
 import csv
 import sys
 import random
@@ -14,29 +19,29 @@ elements2 = dict()
 totalProb2 = 0
     
 if sys.argv[2] == "f":
-    for i in range(0,200):
+    for i in range(0,int(sys.argv[2])):
         weight = random.randint(0,8)
         elements1[i] = weight
         totalProb1 += weight
 
-    for i in range(0,200):
+    for i in range(0,int(sys.argv[2])):
         weight = random.randint(0,8)
         elements2[i] = weight
         totalProb2 += weight
         
 elif sys.argv[2] == "d":
-    for i in range(0,200):
+    for i in range(0,int(sys.argv[2])):
         weight = random.randint(0,8)
         elements1[i] = weight
         totalProb1 += weight
 
-    for i in range(200,400):
+    for i in range(int(sys.argv[2]),2*int(sys.argv[2])):
         weight = random.randint(0,8)
         elements2[i] = weight
         totalProb2 += weight
         
 elif sys.argv[2] == "s":
-    for i in range(0,200):
+    for i in range(0,int(sys.argv[2])):
         weight = random.randint(0,8)
         elements1[i] = weight
         totalProb1 += weight
@@ -61,7 +66,7 @@ with open(output, "w", newline="", encoding="utf-8") as result:
             writer.writerow(("#Address", "Timestamp", "IOtype", "Size", "Cost"))
             writer1.writerow(("#Address", "Timestamp", "IOtype", "Size", "Cost"))
             writer2.writerow(("#Address", "Timestamp", "IOtype", "Size", "Cost"))
-            for i in range(int(sys.argv[3])):
+            for i in range(int(sys.argv[4])):
                 choice = random.randint(0,totalProb1)
                 for key in elements1:
                     if elements1[key] < choice:
@@ -70,7 +75,7 @@ with open(output, "w", newline="", encoding="utf-8") as result:
                         writer.writerow((key,i,"R",1,1))
                         writer1.writerow((key,i,"R",1,1))
                         break
-            for i in range(int(sys.argv[3]),2*int(sys.argv[3])):
+            for i in range(int(sys.argv[4]),2*int(sys.argv[4])):
                 choice = random.randint(0,totalProb2)
                 for key in elements2:
                     if elements2[key] < choice:

@@ -1,5 +1,6 @@
 """Script for generating atf files of scans through lists"""
 #Call using python3 scan_trace_generator.py [filename without extension] [number of elements] [number of scans]
+#outputs an atf in the parent directory
 import csv
 import sys
 import random

@@ -3,3 +3,5 @@ src/traces/systor17/*
 src/traces/test traces/*
 src/traces/*.atf
 src/histograms/*
+src/traces/scans/*
+src/traces/random traces/*

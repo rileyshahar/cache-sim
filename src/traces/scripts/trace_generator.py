@@ -1,5 +1,7 @@
 """Script for generating random atf files"""
 #Call using python3 trace_generator.py [filename without extension] [number of elements] [length of trace]
+#I have been using 400 elements and 3200 accesses as a reference point
+#outputs an atf file in the parent directory
 import csv
 import sys
 import random
