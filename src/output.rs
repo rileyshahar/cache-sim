@@ -24,7 +24,7 @@ impl Serialize for OutputCsvRow<'_> {
 
         seq.serialize_element(self.name)?;
         for stat in self.stats {
-            seq.serialize_element(&format!("{}",stat))?;
+            seq.serialize_element(&format!("{:.5}",stat))?;
         }
 
         seq.serialize_element(&self.infinities)?;
