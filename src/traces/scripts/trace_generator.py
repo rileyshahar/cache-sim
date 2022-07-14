@@ -2,6 +2,7 @@
 import csv
 import sys
 import random
+import os
 
 elements = dict()
 totalProb = 0
