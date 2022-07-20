@@ -152,9 +152,7 @@ impl<I: Item> Trace<I> {
 		dbg!("entered entropy calc");
         for i in prefix..self.inner.len() {
         	*freqs.entry(&self.inner[(i-prefix)..i]).or_insert(0) += 1;
-        	if i > 0{
-				*distributions.entry(&self.inner[(i-prefix)..i]).or_insert(HashMap::default()).entry(self.inner[i]).or_insert(0) += 1;
-			}
+			*distributions.entry(&self.inner[(i-prefix)..i]).or_insert(HashMap::default()).entry(self.inner[i]).or_insert(0) += 1;
         }
         dbg!("freqs done");
 		let mut sum: f64 = 0.0;
@@ -167,6 +165,11 @@ impl<I: Item> Trace<I> {
 		dbg!("entropy done");
 		sum
 	}
+	/*
+	pub fn linear_function_entropy(&self, prefix: usize){
+		let freqs = self.frequency_histogram(&|t: &Trace<_>, i| t[i] - t[i-1] == t[i-1] - t[i-2])
+	}
+	*/
 
     pub fn iter(&self) -> std::slice::Iter<I> {
         self.inner.iter()
