@@ -19,29 +19,29 @@ elements2 = dict()
 totalProb2 = 0
     
 if sys.argv[2] == "f":
-    for i in range(0,int(sys.argv[2])):
+    for i in range(0,int(sys.argv[3])):
         weight = random.randint(0,8)
         elements1[i] = weight
         totalProb1 += weight
 
-    for i in range(0,int(sys.argv[2])):
+    for i in range(0,int(sys.argv[3])):
         weight = random.randint(0,8)
         elements2[i] = weight
         totalProb2 += weight
         
 elif sys.argv[2] == "d":
-    for i in range(0,int(sys.argv[2])):
+    for i in range(0,int(sys.argv[3])):
         weight = random.randint(0,8)
         elements1[i] = weight
         totalProb1 += weight
 
-    for i in range(int(sys.argv[2]),2*int(sys.argv[2])):
+    for i in range(int(sys.argv[3]),2*int(sys.argv[3])):
         weight = random.randint(0,8)
         elements2[i] = weight
         totalProb2 += weight
         
 elif sys.argv[2] == "s":
-    for i in range(0,int(sys.argv[2])):
+    for i in range(0,int(sys.argv[3])):
         weight = random.randint(0,8)
         elements1[i] = weight
         totalProb1 += weight

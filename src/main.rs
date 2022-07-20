@@ -1,10 +1,10 @@
-use cache_sim::condition::Condition;
-use std::collections::HashMap;
+//use cache_sim::condition::Condition;
+//use std::collections::HashMap;
 use std::fs::File;
 use std::env;
-use itertools::Itertools;
+//use itertools::Itertools;
 
-use cache_sim::{atf::parse, output::to_csv, GeneralModelItem, NoCondition, Trace, LastNItems, trace::entropy};
+use cache_sim::{atf::parse, output::to_csv, GeneralModelItem, NoCondition, Trace, trace::entropy};
 
 fn main() -> anyhow::Result<()> {
 	let args: Vec<String> = env::args().collect();
@@ -23,13 +23,12 @@ fn main() -> anyhow::Result<()> {
 	let record_file = File::options().append(true).create(true).open("src/histograms/stack-distances.csv")?;
 	dbg!("file open");
     let stack_distances = trace.stack_distances();
-    //let stack_distances = Trace::from(vec![0,0]).stack_distances();
     dbg!("stack dists done");
 	
-    to_csv(&args[1], &[trace.average_entropy(),entropy(&trace.frequency_histogram(&NoCondition))], &stack_distances, record_file)?;
+    to_csv(&args[1], &[trace.len() as f64,args[2].parse()?,trace.average_entropy(args[2].parse()?),entropy(&trace.frequency_histogram(&NoCondition))], &stack_distances, record_file)?;
 	dbg!("printed stack distances");
 	
-	
+	/*
 	// Output frequency histograms
     let file = File::create(&format!("src/histograms/{}-histograms.csv",&args[1]))?;
     let mut conditions: HashMap<String, Box<dyn Condition<GeneralModelItem>>> =
@@ -52,6 +51,6 @@ fn main() -> anyhow::Result<()> {
 	dbg!("assembled conditions");
     trace.write_conditional_frequencies(conditions, || Ok(file.try_clone()?))?;
 	
-	
+	*/
     Ok(())
 }

@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::output::histogram_out;
 use crate::output::write_header;
-use crate::{condition::Condition, item::Item, stats::Stat, condition::NoCondition, condition::LastNItems};
+use crate::{condition::Condition, item::Item, stats::Stat};
 
 /// A trace.
 #[derive(Debug, PartialEq, Eq, Hash, Default)]
@@ -144,25 +144,24 @@ impl<I: Item> Trace<I> {
 	/// follow it, weighted by the frequency of the condition.
 	/// 
 	/// TODO: allow longer conditons
-    pub fn average_entropy(&self) -> f64{
-		let items = self.iter().unique().copied().collect::<Vec<_>>();
+    pub fn average_entropy(&self, prefix: usize) -> f64{
 		//calculates its own frequencies rather than relying on frequency_histogram for performance reasons
 		//TODO: find a way to let frequency_histogram do this
-		let mut freqs: HashMap<I, u32> = HashMap::default();
-		let mut distributions: HashMap<I, HashMap<I, u32>> = HashMap::default();
+		let mut freqs: HashMap<&[I], u32> = HashMap::default();
+		let mut distributions: HashMap<&[I], HashMap<I, u32>> = HashMap::default();
 		dbg!("entered entropy calc");
-        for i in 0..self.inner.len() {
-        	*freqs.entry(self.inner[i]).or_insert(0) += 1;
+        for i in prefix..self.inner.len() {
+        	*freqs.entry(&self.inner[(i-prefix)..i]).or_insert(0) += 1;
         	if i > 0{
-				*distributions.entry(self.inner[i - 1]).or_insert(HashMap::default()).entry(self.inner[i]).or_insert(0) += 1;
+				*distributions.entry(&self.inner[(i-prefix)..i]).or_insert(HashMap::default()).entry(self.inner[i]).or_insert(0) += 1;
 			}
         }
         dbg!("freqs done");
 		let mut sum: f64 = 0.0;
 		//this also looks slow - can we speed it up somehow
-		for item in items{
-			if let (Some(&count),Some(hist)) = (freqs.get(&item),distributions.get(&item)){
-				sum += ((count as f64)/(self.len() as f64))*entropy(hist);
+		for (seq,count) in freqs{
+			if let Some(hist) = distributions.get(&seq){
+				sum += ((count as f64)/((self.len()-prefix) as f64))*entropy(hist);
 			}
 		}
 		dbg!("entropy done");
