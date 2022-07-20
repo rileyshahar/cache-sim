@@ -12,6 +12,8 @@ pub trait Item:
     // allow floats
     /// The size of the item in the cache.
     fn size(&self) -> u32;
+    
+    fn id(&self) -> u64;
 }
 
 impl Item for u32 {
@@ -21,6 +23,21 @@ impl Item for u32 {
     fn size(&self) -> u32 {
         1
     }
+    fn id(&self) -> u64 {
+		*self as u64
+	}
+}
+
+impl Item for u64 {
+    fn cost(&self) -> f64 {
+        1.0
+    }
+    fn size(&self) -> u32 {
+        1
+    }
+    fn id(&self) -> u64 {
+		*self
+	}
 }
 
 /// A cacheable item with arbitrary const cost and size.
@@ -32,7 +49,7 @@ impl Item for u32 {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Default, Debug, Copy, Clone)]
 pub struct GeneralModelItem {
-    uid: u32,
+    uid: u64,
     cost: f64,
     size: u32,
 }
@@ -42,7 +59,7 @@ impl GeneralModelItem {
     ///
     /// If you don't care about the unique identifier, prefer using a [`GeneralModelGenerator`].
     #[must_use]
-    pub const fn new(uid: u32, cost: f64, size: u32) -> Self {
+    pub const fn new(uid: u64, cost: f64, size: u32) -> Self {
         Self { uid, cost, size }
     }
 }
@@ -84,6 +101,10 @@ impl Item for GeneralModelItem {
     fn size(&self) -> u32 {
         self.size
     }
+    
+    fn id(&self) -> u64{
+		self.uid
+	}
 }
 
 /// A generator for general model items.
@@ -91,7 +112,7 @@ impl Item for GeneralModelItem {
 /// If you don't care about the unique identifier, this is the preferred way to create these items.
 #[derive(Default)]
 pub struct GeneralModelGenerator {
-    counter: u32,
+    counter: u64,
 }
 
 impl GeneralModelGenerator {

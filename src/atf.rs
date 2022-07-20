@@ -28,7 +28,7 @@ enum Operation {
 /// This represents a single row of the csv.
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct OpRecord {
-    accessed_item_id: u32,
+    accessed_item_id: u64,
     nanos_since_zero: u32, // TODO: should this be a float
     optype: Operation,
     size: u32,

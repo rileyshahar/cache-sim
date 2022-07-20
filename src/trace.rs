@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::output::histogram_out;
 use crate::output::write_header;
-use crate::{condition::Condition, item::Item, stats::Stat};
+use crate::{condition::Condition, item::Item, stats::Stat, item::GeneralModelItem};
 
 /// A trace.
 #[derive(Debug, PartialEq, Eq, Hash, Default)]
@@ -165,11 +165,6 @@ impl<I: Item> Trace<I> {
 		dbg!("entropy done");
 		sum
 	}
-	/*
-	pub fn linear_function_entropy(&self, prefix: usize){
-		let freqs = self.frequency_histogram(&|t: &Trace<_>, i| t[i] - t[i-1] == t[i-1] - t[i-2])
-	}
-	*/
 
     pub fn iter(&self) -> std::slice::Iter<I> {
         self.inner.iter()
@@ -376,6 +371,18 @@ pub fn entropy<I: Item, H: std::hash::BuildHasher>(histogram: &HashMap<I, u32, H
         .map(|&i| (f64::from(i) / total) * ((f64::from(i) / total).log2()))
         .sum::<f64>()
 }
+
+/*
+//entropy for functions, specifically additive functions
+//prefix in this case is the number of prior strides that need to be equal to the last stride
+pub fn linear_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize){
+	let freqs = trace.frequency_histogram(&|t: &Trace<_>, i| t[i-prefix+1..i+1].iter()
+	.fold((&t[i-prefix],(t[i-prefix].id() - t[i-prefix-1].id()) as i64),
+	|(last,stride),next| if (next.id() - last.id()) as i64 == stride {(next,stride)} else{(next,0)}) != (&t[i],0));
+	
+	
+}
+*/
 
 #[cfg(test)]
 mod tests {
