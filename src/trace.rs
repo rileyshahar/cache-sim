@@ -375,32 +375,59 @@ pub fn entropy<I: Item, H: std::hash::BuildHasher>(histogram: &HashMap<I, u32, H
 
 //entropy for functions, specifically additive functions
 //prefix in this case is the number of prior strides that need to be equal to the last stride
-pub fn linear_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize) -> f64{
-	let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t.inner()[i-prefix+1..i+1].iter()
+pub fn linear_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize, cont: usize) -> f64{
+	let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t[i-prefix+1..i+cont].iter()
 	.fold((&t[i-prefix],(t[i-prefix].id() as i64 - t[i-prefix-1].id() as i64)),
-	|(last,stride),next| if (next.id() as i64 - last.id() as i64) == stride {(next,stride)} else{(next,0)}) != (&t[i],0));
+	|(last,stride),next| if (next.id() as i64 - last.id() as i64) == stride {(next,stride)} else{(next,0)}) != (&t[i+cont-1],0));
 	
 	entropy(&freqs)
 	//TODO: turn this into some useful number
 	//freqs holds the distribution of elements that are accessed after sequences of evenly spaced accesses
 }
 
-/*
+
 pub fn linear_function_continuation<I: Item>(trace: &Trace<I>) -> Vec<f64>{
 	let mut probs = Vec::new();
-	for prefix in 1..20 {
-		let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t.inner()[i-prefix+1..i+1].iter()
+	let mut max_prefix = 0;
+	let mut prefix = 1;
+	while max_prefix == 0 {
+		let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t[i-prefix+1..i+1].iter()
 		.fold((&t[i-prefix],(t[i-prefix].id() as i64 - t[i-prefix-1].id() as i64)),
 		|(last,stride),next| if (next.id() as i64 - last.id() as i64) == stride {(next,stride)} else{(next,0)}) != (&t[i],0));
 		
+		let continued: u32 = freqs.values().sum();
+		probs.push(continued as f64);
+		if continued == 0{
+			max_prefix = prefix;
+		}
 		
+		prefix += 1;
 	}
+	dbg!("Frequency list done");
+	/*
+	for data in 1..max_prefix{
+		probs[max_prefix - data] /= probs[max_prefix - data - 1];
+	}
+	probs[0] /= (trace.len() - 2) as f64;
+	*/
 	probs
 	
 	//TODO: turn this into some useful number
 	//freqs holds the distribution of elements that are accessed after sequences of evenly spaced accesses
 }
-*/
+
+//entropy for functions, specifically multiplicative functions
+//prefix in this case is the number of prior factors that need to be equal to the last factor
+pub fn exp_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize) -> f64{
+	let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t[i-prefix+1..i+1].iter()
+	.fold((&t[i-prefix],(t[i-prefix].id() as f64/t[i-prefix-1].id() as f64)),
+	|(last,stride),next| if (next.id() as f64/last.id() as f64) == stride {(next,stride)} else{(next,0.0)}) != (&t[i],0.0));
+	
+	entropy(&freqs)
+	//TODO: turn this into some useful number
+	//freqs holds the distribution of elements that are accessed after sequences of regularly multiplied accesses
+}
+
 
 
 #[cfg(test)]
