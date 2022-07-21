@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use crate::output::histogram_out;
 use crate::output::write_header;
-use crate::{condition::Condition, item::Item, stats::Stat, item::GeneralModelItem};
+use crate::{condition::Condition, item::Item, stats::Stat};
 
 /// A trace.
 #[derive(Debug, PartialEq, Eq, Hash, Default)]
@@ -372,17 +372,36 @@ pub fn entropy<I: Item, H: std::hash::BuildHasher>(histogram: &HashMap<I, u32, H
         .sum::<f64>()
 }
 
-/*
+
 //entropy for functions, specifically additive functions
 //prefix in this case is the number of prior strides that need to be equal to the last stride
-pub fn linear_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize){
-	let freqs = trace.frequency_histogram(&|t: &Trace<_>, i| t[i-prefix+1..i+1].iter()
-	.fold((&t[i-prefix],(t[i-prefix].id() - t[i-prefix-1].id()) as i64),
-	|(last,stride),next| if (next.id() - last.id()) as i64 == stride {(next,stride)} else{(next,0)}) != (&t[i],0));
+pub fn linear_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize) -> f64{
+	let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t.inner()[i-prefix+1..i+1].iter()
+	.fold((&t[i-prefix],(t[i-prefix].id() as i64 - t[i-prefix-1].id() as i64)),
+	|(last,stride),next| if (next.id() as i64 - last.id() as i64) == stride {(next,stride)} else{(next,0)}) != (&t[i],0));
 	
+	entropy(&freqs)
+	//TODO: turn this into some useful number
+	//freqs holds the distribution of elements that are accessed after sequences of evenly spaced accesses
+}
+
+/*
+pub fn linear_function_continuation<I: Item>(trace: &Trace<I>) -> Vec<f64>{
+	let mut probs = Vec::new();
+	for prefix in 1..20 {
+		let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t.inner()[i-prefix+1..i+1].iter()
+		.fold((&t[i-prefix],(t[i-prefix].id() as i64 - t[i-prefix-1].id() as i64)),
+		|(last,stride),next| if (next.id() as i64 - last.id() as i64) == stride {(next,stride)} else{(next,0)}) != (&t[i],0));
+		
+		
+	}
+	probs
 	
+	//TODO: turn this into some useful number
+	//freqs holds the distribution of elements that are accessed after sequences of evenly spaced accesses
 }
 */
+
 
 #[cfg(test)]
 mod tests {
