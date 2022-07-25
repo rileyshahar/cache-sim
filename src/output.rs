@@ -20,7 +20,7 @@ impl Serialize for OutputCsvRow<'_> {
         S: serde::Serializer,
     {
         let mut seq =
-            serializer.serialize_seq(Some(2 + self.stats.len() + self.stack_distances.len()))?;
+            serializer.serialize_seq(Some(2 + self.stats.len() + self.stack_distances.iter().filter(|&&i| i != 0).count()))?;
 
         seq.serialize_element(self.name)?;
         for stat in self.stats {
@@ -34,8 +34,8 @@ impl Serialize for OutputCsvRow<'_> {
 
         seq.serialize_element(&self.infinities)?;
 
-        for distance in self.stack_distances {
-            seq.serialize_element(distance)?;
+        for (distance, num) in self.stack_distances.iter().enumerate().filter(|&(_,&val)| val != 0) {
+            seq.serialize_element(&format!("{}:{}",distance,num))?;
         }
         seq.end()
     }
@@ -71,7 +71,6 @@ struct FreqHistRow<'a, I: Item, H: std::hash::BuildHasher> {
     name: &'a str,
     entropy: f64,
     histogram: &'a HashMap<I, u32, H>,
-    items: &'a [I],
 }
 
 impl<I: Item, H: std::hash::BuildHasher> Serialize for FreqHistRow<'_, I, H> {
@@ -79,17 +78,13 @@ impl<I: Item, H: std::hash::BuildHasher> Serialize for FreqHistRow<'_, I, H> {
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(2 + self.items.len()))?;
+        let mut seq = serializer.serialize_seq(Some(2 + self.histogram.len()))?;
 
         seq.serialize_element(self.name)?;
         seq.serialize_element(&format!("{:.5}",self.entropy))?;
 
-        for item in self.items {
-            if let Some(freq) = self.histogram.get(item) {
-                seq.serialize_element(freq)?;
-            } else {
-                seq.serialize_element(&0_usize)?;
-            }
+        for (item,freq) in self.histogram {
+        	seq.serialize_element(&format!("{}:{}",item,freq))?;
         }
         seq.end()
     }
@@ -106,14 +101,12 @@ pub fn histogram_out<I: Item, W: Write, H: std::hash::BuildHasher>(
     name: &str,
     entropy: f64,
     histogram: &HashMap<I, u32, H>,
-    items: &[I],
     writer: W,
 ) -> Result<(), csv::Error> {
     let output = FreqHistRow {
         name,
         entropy,
         histogram,
-        items,
     };
 
     let mut wtr = csv::Writer::from_writer(writer);
@@ -145,6 +138,53 @@ pub fn write_header<W: Write>(
 ) -> Result<(), csv::Error> {
     let output = HeaderRow {
         labels,
+    };
+
+    let mut wtr = csv::Writer::from_writer(writer);
+
+    wtr.serialize(output)
+}
+
+struct LinearContRow<'a> {
+    // TODO: does this need to be owned
+    name: &'a str,
+    length: usize,
+    probs: &'a [f64],
+}
+
+impl Serialize for LinearContRow<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(2 + self.probs.len()))?;
+
+        seq.serialize_element(self.name)?;
+        
+        seq.serialize_element(&self.length)?;
+
+        for prob in self.probs {
+			if prob.fract() == 0.0 {
+				seq.serialize_element(&format!("{:.0}",prob))?;
+			}
+			else{
+            	seq.serialize_element(&format!("{}",prob))?;
+            }
+        }
+        seq.end()
+    }
+}
+
+pub fn linear_cont_out<W: Write>(
+    name: &str,
+    length: usize,
+    probs: &[f64],
+    writer: W,
+) -> Result<(), csv::Error> {
+    let output = LinearContRow {
+        name,
+        length,
+        probs,
     };
 
     let mut wtr = csv::Writer::from_writer(writer);

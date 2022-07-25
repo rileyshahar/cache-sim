@@ -46,6 +46,31 @@ impl<I: Item> Condition<I> for LastNItems<I> {
     }
 }
 
+/// A general condition for checking the previous N strides.  Can take any vector of strides (i64)
+/// and filters for accesses in the trace where the last N strides were the exact contents
+/// of the vector.
+#[derive(Default, Debug)]
+pub struct LastNStrides{
+    strides: Vec<i64>,
+}
+
+impl LastNStrides {
+    #[must_use]
+    pub fn new(strides: Vec<i64>) -> Self {
+        Self { strides }
+    }
+}
+
+impl<I: Item> Condition<I> for LastNStrides {
+    fn check(&self, trace: &Trace<I>, index: usize) -> bool {
+        if index >= self.strides.len() {
+            trace.strides()[(index - self.strides.len())..index] == self.strides
+        } else {
+            false
+        }
+    }
+}
+
 impl<I: Item, F: Fn(&Trace<I>, usize) -> bool> Condition<I> for F {
     fn check(&self, trace: &Trace<I>, index: usize) -> bool {
         self(trace, index)

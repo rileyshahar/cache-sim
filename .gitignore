@@ -5,3 +5,4 @@ src/traces/*.atf
 src/histograms/*
 src/traces/scans/*
 src/traces/random traces/*
+src/traces/used traces/*

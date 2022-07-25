@@ -40,6 +40,18 @@ impl Item for u64 {
 	}
 }
 
+impl Item for i64 {
+    fn cost(&self) -> f64 {
+        1.0
+    }
+    fn size(&self) -> u32 {
+        1
+    }
+    fn id(&self) -> u64 {
+		*self as u64
+	}
+}
+
 /// A cacheable item with arbitrary const cost and size.
 ///
 /// We implement Hash and Eq by hand to allow floating point costs and sizes. They are simple,
