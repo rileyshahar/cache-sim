@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
 	
 	if args.len() > 5 && args[5] == "Y"{
 		// Output frequency histograms
-	    let file = File::create(&format!("src/histograms/{}-histograms.csv",&args[1]))?;
+	    let file = File::create(&format!("src/histograms/frequency histograms/{}-histograms.csv",&args[1]))?;
 	    let mut conditions: HashMap<String, (Box<dyn Condition<GeneralModelItem>>,bool)> =
 	        HashMap::with_capacity(2);
 	

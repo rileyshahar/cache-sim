@@ -29,7 +29,7 @@ enum Operation {
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct OpRecord {
     accessed_item_id: u64,
-    nanos_since_zero: u32, // TODO: should this be a float
+    nanos_since_zero: u64, // TODO: should this be a float
     optype: Operation,
     size: u32,
     cost: Vec<f64>,
