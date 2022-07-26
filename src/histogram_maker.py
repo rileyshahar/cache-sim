@@ -15,9 +15,9 @@ with open(sys.argv[2], "r", encoding="utf-8") as source:
             while row[0] != sys.argv[3]:
                 row = next(reader)
                 
-            (name, inf) = (row[0],row[9])
+            (name, inf) = (row[0],row[11])
             sd_list = []
-            for sd in row[10:]:
+            for sd in row[12:]:
                 value = int(sd[:sd.find(':')])
                 num = int(sd[sd.find(':')+1:])
                 sd_list.extend([value]*num)
@@ -30,9 +30,9 @@ with open(sys.argv[2], "r", encoding="utf-8") as source:
             plt.show()
         else:
             for row in reader:
-                (name, inf) = (row[0],row[9])
+                (name, inf) = (row[0],row[11])
                 sd_list = []
-                for sd in row[10:]:
+                for sd in row[12:]:
                     value = int(sd[:sd.find(':')])
                     num = int(sd[sd.find(':')+1:])
                     sd_list.extend([value]*num)
