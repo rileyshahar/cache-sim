@@ -236,6 +236,16 @@ impl<I: Item> Trace<I> {
     pub fn len(&self) -> usize {
         self.inner.len()
     }
+    
+    /// Get the number of unique items in the trace
+	pub fn num_items(&self) -> usize {
+        self.inner.iter().unique().count()
+    }
+    
+    /// Get the number of unique items in the trace
+	pub fn num_strides(&self) -> usize {
+        self.strides.iter().unique().count()
+    }
 
     /// Check whether the trace is empty.
     #[must_use]

@@ -38,16 +38,16 @@ fn main() -> anyhow::Result<()> {
 	}
 	
     to_csv(&args[1],
-    &[trace.len() as f64,args[2].parse()?,
+    &[trace.len() as f64, trace.num_items() as f64, trace.num_strides() as f64, args[2].parse()?,
     entropy(&trace.frequency_histogram(&NoCondition)),entropy(&trace.stride_histogram(&NoCondition)),
     trace.average_entropy(args[2].parse()?),trace.stride_entropy(args[2].parse()?),
     exp_function_entropy(&trace,args[2].parse()?,continuation),linear_function_entropy(&trace,args[2].parse()?,continuation)],
     &stack_distances, record_file)?;
-	//csv header: Name,Trace length,Prefix,Item entropy,Stride entropy,Item conditional entropy,Stride conditional entropy,Exponential function entropy,Linear Function entropy,Infinities,Stack distances
+	//csv header: Name,Trace length,Unique items,Unique strides,Prefix,Item entropy,Stride entropy,Item conditional entropy,Stride conditional entropy,Exponential function entropy,Linear Function entropy,Infinities,Stack distances
 	
 	dbg!("printed csv");
 	if args.len() > 6 && args[6] == "Y"{
-		let linear_file = File::options().append(true).create(true).open("src/histograms/linear_function_data.csv")?;
+		let linear_file = File::options().append(true).create(true).open("src/histograms/linear-function-data.csv")?;
 		linear_cont_out(&args[1],trace.len(),&linear_function_continuation(&trace),linear_file)?;
 		dbg!("printed linear continuation data");
 	}
