@@ -14,7 +14,10 @@ with open(sys.argv[1], "r", encoding="utf-8") as source:
         writer.writerow(("#Address", "Timestamp", "IOType", "Size", "Cost"))
         r1 = next(reader)
         time_start = float(r1[1])*TIME_UNIT
-        writer.writerow((r1[3],int(float(r1[1])*TIME_UNIT-time_start),r1[2],r1[4],1))
+        if(not (float(r1[4])/512).is_integer()): raise ValueError('Size not divisible by 512')
+        writer.writerow((r1[3],int(float(r1[1])*TIME_UNIT-time_start),r1[2],int(int(r1[4])/512),1))
         for r in reader:
             if(int(float(r[1])*TIME_UNIT-time_start) < 0): time_start = r[1]*TIME_UNIT
-            writer.writerow((r[3],int(float(r[1])*TIME_UNIT-time_start),r[2],r[4],1))
+            if(not (float(r[4])/512).is_integer()): raise ValueError('Size not divisible by 512')
+            writer.writerow((r[3],int(float(r[1])*TIME_UNIT-time_start),r[2],int(int(r[4])/512),1))
+

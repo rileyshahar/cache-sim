@@ -5,8 +5,10 @@ use std::env;
 
 use cache_sim::{atf::parse, output::to_csv, output::linear_cont_out, GeneralModelItem, NoCondition, Trace, trace::entropy, trace::linear_function_entropy, trace::exp_function_entropy, trace::linear_function_continuation};
 
-//Call with: cargo run [filename, no extension (assumes .atf)] [prefix] [(optional) use only continued streaks] [(optional) print stack distances Y/N] [(optional) print histograms Y/N] [(optonal) print linear continuation data] [(optional) Ignore sizes Y/N]
-//TODO: make the optional flags more convenient to use
+//Call with: cargo run [filename, no extension (assumes .atf)] [prefix] [optional flags in any order]
+//Optional Flags: S = print stack distances, P = use paging model rather than size model,
+//H = print frequency histogram, L = print stride run frequencies,
+//C = only incude accesses that continue a function for those entropy calcs, 
 fn main() -> anyhow::Result<()> {
 	let args: Vec<String> = env::args().collect();
 	let atf_name = &format!("{}.atf",args[1]);
@@ -24,16 +26,16 @@ fn main() -> anyhow::Result<()> {
 	let record_file = File::options().append(true).create(true).open("src/histograms/stack-distances.csv")?;
 	dbg!("file open");
 	let mut stack_distances = Trace::<u32>::from(vec![]).stack_distances(true);
-	if args.len() > 4 && args[4] == "Y" {
+	if args.len() > 3 && args[3..].iter().any(|i| i=="S") {
 		let mut paging_model = false;
-		if args.len() > 7 && args[7] == "N" {
+		if args.len() > 3 && args[3..].iter().any(|i| i=="P") {
 			paging_model = true;
 		}
 		stack_distances = trace.stack_distances(paging_model);
 	}
     dbg!("stack dists done");
     let mut continuation = 0;
-	if args.len() > 3 && args[3] == "T"{
+	if args.len() > 3 && args[3..].iter().any(|i| i=="C"){
 		continuation = 1;
 	}
 	
@@ -46,13 +48,13 @@ fn main() -> anyhow::Result<()> {
 	//csv header: Name,Trace length,Unique items,Unique strides,Prefix,Item entropy,Stride entropy,Item conditional entropy,Stride conditional entropy,Exponential function entropy,Linear Function entropy,Infinities,Stack distances
 	
 	dbg!("printed csv");
-	if args.len() > 6 && args[6] == "Y"{
+	if args.len() > 3 && args[3..].iter().any(|i| i=="L"){
 		let linear_file = File::options().append(true).create(true).open("src/histograms/linear-function-data.csv")?;
 		linear_cont_out(&args[1],trace.len(),&linear_function_continuation(&trace),linear_file)?;
 		dbg!("printed linear continuation data");
 	}
 	
-	if args.len() > 5 && args[5] == "Y"{
+	if args.len() > 3 && args[3..].iter().any(|i| i=="H"){
 		// Output frequency histograms
 	    let file = File::create(&format!("src/histograms/frequency histograms/{}-histograms.csv",&args[1]))?;
 	    let mut conditions: HashMap<String, (Box<dyn Condition<GeneralModelItem>>,bool)> =
