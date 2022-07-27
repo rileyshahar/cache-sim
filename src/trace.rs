@@ -158,7 +158,7 @@ impl<I: Item> Trace<I> {
         Ok(())
     }
     
-    /// Calculates the conditional entropy of an item, conditioned on the last single item.
+    /// Calculates the conditional entropy of an item, conditioned on the last [prefix] items.
 	/// 
 	/// This value is the sum over every item of the entropy of the distribution of items that
 	/// follow it, weighted by the frequency of the condition.

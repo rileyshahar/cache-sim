@@ -7,3 +7,4 @@ src/histograms/old data
 src/traces/scans/*
 src/traces/random traces/*
 src/traces/used traces/*
+src/traces/unused traces/*

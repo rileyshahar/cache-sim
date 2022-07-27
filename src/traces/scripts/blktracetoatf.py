@@ -20,6 +20,6 @@ with open(sys.argv[1], "r", encoding="utf-8") as source:
         for r in reader:
             if("CPU" in r[0]): break
             r = list(filter(None,r))
-            if(float(r[3]) < 0): time_start = r[3]
+            if(float(r[3]) < 0): time_start = r[3]*TIME_UNIT
             if(len(r) > 10):
                 writer.writerow((r[7],int(float(r[3])*TIME_UNIT-time_start),"R" if "R" in r[6] else "W",r[9],1))
