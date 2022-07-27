@@ -7,12 +7,10 @@ pub trait Item:
     /// The cost to cache the item; i.e. the cost of a miss.
     fn cost(&self) -> f64;
 
-    // TODO: should this be a float? the young paper says that sizes are integral, so we're making
-    // them integers for now because floats work strangely, but maybe to be more general we should
-    // allow floats
     /// The size of the item in the cache.
     fn size(&self) -> u32;
     
+    /// The (unique) id of the item; i.e. the address on disk.
     fn id(&self) -> u64;
 }
 

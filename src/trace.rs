@@ -24,7 +24,7 @@ impl<I: Item> From<Vec<I>> for Trace<I> {
 }
 
 impl<I: Item> Trace<I> {
-    /// Calculate the frequency historgram based on a given condition.
+    /// Calculate the frequency histogram of the items based on a given condition.
     ///
     /// ```
     /// # use std::collections::HashMap;
@@ -47,6 +47,16 @@ impl<I: Item> Trace<I> {
         freqs
     }
     
+    /// Calculate the frequency histogram of the strides based on a given condition.
+    ///
+    /// ```
+    /// # use std::collections::HashMap;
+    /// # use cache_sim::{Trace, NoCondition};
+    /// let strides = Trace::from(vec![0, 0, 4, 3, 2, 2, 0]).stride_histogram(&NoCondition);
+    /// assert_eq!(frequencies.get(&0), Some(&2));
+    /// assert_eq!(frequencies.get(&-1), Some(&2));
+    /// assert_eq!(frequencies.get(&3), None);
+    /// ```
     pub fn stride_histogram(&self, condition: &impl Condition<I>) -> HashMap<i64, u32> {
         let mut freqs = HashMap::default();
 		
@@ -59,6 +69,20 @@ impl<I: Item> Trace<I> {
         freqs
     }
     
+    /// Calculate several frequency histograms, each identified by a string.  Can produce a
+	/// mix of item and stride frequency histograms, determined by the bool accompanying the condition.
+	/// (`true` would indicate a stride frequency histogram)
+    ///
+    /// ```
+    /// # use std::collections::HashMap;
+    /// # use cache_sim::{Trace, NoCondition};
+	/// let mut conditions: HashMap<String, (Box<dyn Condition<GeneralModelItem>>,bool)> = HashMap::with_capacity(2);
+	///	conditions.insert(String::from("Items"), (Box::new(NoCondition),false));
+	/// conditions.insert(String::from("Strides"), (Box::new(NoCondition),true));
+    /// let histograms = Trace::from(vec![0, 0, 4, 3, 2, 2, 0]).frequency_histogram_many(&conditions);
+    /// assert_eq!(histograms.get(&"Items").get(&0), Some(&3));
+    /// assert_eq!(frequencies.get(&"Strides").get(&0), Some(&1));
+    /// ```
     pub fn frequency_histogram_many<'a>(&self, conditions: &'a HashMap<String, (Box<dyn Condition<I>>, bool)>) -> (HashMap<&'a str, HashMap<I, u32>>,HashMap<&'a str, HashMap<i64, u32>>) {
         let mut dists = HashMap::default();
         let mut dists2 = HashMap::default();
@@ -66,6 +90,7 @@ impl<I: Item> Trace<I> {
         for i in 0..self.inner.len() {
 			for (name, (condition, use_stride)) in conditions{
             	if !use_stride && condition.check(self, i) {
+					//TODO: is this a problem? Do we need to check for none here?
                 	*dists.entry(name.as_str()).or_insert(HashMap::default()).entry(self.inner[i]).or_insert(0) += 1;
             	}
             	else if *use_stride && i < self.strides.len() && condition.check(self, i) {
@@ -78,7 +103,7 @@ impl<I: Item> Trace<I> {
     }
     
 
-    /// Calculate the stack distances.
+    /// Calculate the stack distances.  Under the paging model, size is considered 1 for all items.
     ///
     /// ```
     /// use cache_sim::Trace;
@@ -158,15 +183,12 @@ impl<I: Item> Trace<I> {
         Ok(())
     }
     
-    /// Calculates the conditional entropy of an item, conditioned on the last [prefix] items.
+    /// Calculates the conditional entropy of an item, conditioned on the last `prefix` items seen.
 	/// 
-	/// This value is the sum over every item of the entropy of the distribution of items that
-	/// follow it, weighted by the frequency of the condition.
-	/// 
-	/// TODO: allow longer conditons
+	/// Each sequence of items has a distribution of the items that follow it, and this is the weighted
+	/// sum of all of those.
     pub fn average_entropy(&self, prefix: usize) -> f64{
 		//calculates its own frequencies rather than relying on frequency_histogram for performance reasons
-		//TODO: find a way to let frequency_histogram do this
 		let mut freqs: HashMap<&[I], u32> = HashMap::default();
 		let mut distributions: HashMap<&[I], HashMap<I, u32>> = HashMap::default();
 		dbg!("counting items...");
@@ -176,7 +198,7 @@ impl<I: Item> Trace<I> {
         }
         dbg!("item freqs done");
 		let mut sum: f64 = 0.0;
-		//this also looks slow - can we speed it up somehow
+		//TODO: this also looks slow - can we speed it up somehow?
 		for (seq,count) in freqs{
 			if let Some(hist) = distributions.get(&seq){
 				sum += ((count as f64)/((self.len()-prefix) as f64))*entropy(hist);
@@ -186,9 +208,14 @@ impl<I: Item> Trace<I> {
 		sum
 	}
 	
+	/// Calculates the conditional entropy of a stride length, conditioned on the last `prefix` strides seen.
+	/// 
+	/// Each sequence of items has a distribution of the strides that follow it, and this is the weighted
+	/// sum of all of those.
+	/// 
+	/// (This is analagous to `average_entropy` for items)
 	pub fn stride_entropy(&self, prefix: usize) -> f64{
-		//calculates its own frequencies rather than relying on frequency_histogram for performance reasons
-		//TODO: find a way to let frequency_histogram do this
+		//almost identical to average_entropy
 		let mut freqs: HashMap<&[i64], u32> = HashMap::default();
 		let mut distributions: HashMap<&[i64], HashMap<i64, u32>> = HashMap::default();
 		dbg!("counting strides...");
@@ -208,6 +235,7 @@ impl<I: Item> Trace<I> {
 		sum
 	}
 
+	/// Get an iterator over the inner vector of items
     pub fn iter(&self) -> std::slice::Iter<I> {
         self.inner.iter()
     }
@@ -227,6 +255,7 @@ impl<I: Item> Trace<I> {
         self.inner
     }
     
+    /// Get a reference to the inner vector of strides.
     pub fn strides(&self) -> &[i64] {
         self.strides.as_ref()
     }
@@ -242,7 +271,7 @@ impl<I: Item> Trace<I> {
         self.inner.iter().unique().count()
     }
     
-    /// Get the number of unique items in the trace
+    /// Get the number of unique strides in the trace
 	pub fn num_strides(&self) -> usize {
         self.strides.iter().unique().count()
     }
@@ -432,24 +461,44 @@ pub fn entropy<I: Item, H: std::hash::BuildHasher>(histogram: &HashMap<I, u32, H
 }
 
 
-//TODO: clean up these for new stride structure
-//entropy for functions, specifically additive functions.  Calculates entropy of the strides involved
-//prefix in this case is the number of prior strides that need to be equal to the last stride
+/// Calculates the entropy of the strides involved in runs of several of the same stride.
+/// 
+/// `cont` indicates how far to look ahead, where `1` means you include the current stride.
+/// For most purposes, `cont` should be either `0` or `1`.  `cont` does not affect how far back
+/// to look; i.e. this function looks for stride sequences of length `prefix + cont` in total.
 pub fn linear_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize, cont: usize) -> f64{
 	let freqs = trace.stride_histogram(&|t: &Trace<I>, i: usize| i >= prefix && 
 	t.strides()[i-prefix..i+cont].iter().fold((true,t.strides()[i-prefix]) , |(state,last),&next| (state && last == next,next)).0);
 	
 	entropy(&freqs)
+}
+
+/// Calculates the entropy of the items involved in exponential sequences of accesses, i.e. a sequence where the
+/// offset doubles each access.  Not very useful.
+/// 
+/// `cont` indicates how far to look ahead, where `1` means you include the current item.
+/// For most purposes, `cont` should be either `0` or `1`.  `cont` does not affect how far back
+/// to look; i.e. this function looks for exponential sequences of length `prefix + cont` in total.
+pub fn exp_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize, cont: usize) -> f64{
+	let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t[i-prefix+1..i+cont].iter()
+	.fold((&t[i-prefix],(t[i-prefix].id() as f64/t[i-prefix-1].id() as f64)),
+	|(last,stride),next| if (next.id() as f64/last.id() as f64) == stride {(next,stride)} else{(next,0.0)}) != (&t[i+cont-1],0.0));
+	
+	entropy(&freqs)
 	//TODO: turn this into some useful number
-	//freqs holds the distribution of elements that are accessed after sequences of evenly spaced accesses
+	//freqs holds the distribution of elements that are accessed after sequences of regularly multiplied accesses
 }
 
 
+/// Produces a list recording how often a sequence of strides is continued.  Sequences can overlap.
+/// 
+/// Very slow on traces with very long orderly sequences.
 pub fn linear_function_continuation<I: Item>(trace: &Trace<I>) -> Vec<f64>{
 	let mut probs = Vec::new();
 	let mut max_prefix = 0;
 	let mut prefix = 1;
 	dbg!("Collecting linear function data...");
+	//Checks every length up to the longest that occurs in the trace
 	while max_prefix == 0 {
 		if prefix % 10 == 0{dbg!(prefix);}
 		
@@ -465,30 +514,11 @@ pub fn linear_function_continuation<I: Item>(trace: &Trace<I>) -> Vec<f64>{
 		prefix += 1;
 	}
 	dbg!("Frequency list done");
-	/*
-	for data in 1..max_prefix{
-		probs[max_prefix - data] /= probs[max_prefix - data - 1];
-	}
-	probs[0] /= (trace.len() - 2) as f64;
-	*/
+
 	probs
-	
-	//TODO: turn this into some useful number
-	//freqs holds the distribution of elements that are accessed after sequences of evenly spaced accesses
 }
 
-//entropy for functions, specifically multiplicative functions
-//prefix in this case is the number of prior factors that need to be equal to the last factor
-pub fn exp_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize, cont: usize) -> f64{
-	let freqs = trace.frequency_histogram(&|t: &Trace<I>, i: usize| i > prefix && t[i-prefix+1..i+cont].iter()
-	.fold((&t[i-prefix],(t[i-prefix].id() as f64/t[i-prefix-1].id() as f64)),
-	|(last,stride),next| if (next.id() as f64/last.id() as f64) == stride {(next,stride)} else{(next,0.0)}) != (&t[i+cont-1],0.0));
-	
-	entropy(&freqs)
-	//TODO: turn this into some useful number
-	//freqs holds the distribution of elements that are accessed after sequences of regularly multiplied accesses
-}
-
+/// Creates a vector holding the differences between consecutive items (stride) in `trace`.
 pub fn trace_strides<I: Item>(trace: &Vec<I>) -> Vec<i64>{
 	let mut strides = Vec::new();
 	for i in 1..trace.len(){
@@ -533,7 +563,7 @@ mod tests {
 
             let trace = Trace::from(vec![a, b, c, a]);
             assert_eq!(
-                trace.stack_distances().inner(),
+                trace.stack_distances(false).inner(),
                 vec![None, None, None, Some(7)]
             );
         }

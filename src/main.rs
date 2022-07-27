@@ -39,6 +39,7 @@ fn main() -> anyhow::Result<()> {
 		continuation = 1;
 	}
 	
+	//out put to stack-distances.csv
     to_csv(&args[1],
     &[trace.len() as f64, trace.num_items() as f64, trace.num_strides() as f64, args[2].parse()?,
     entropy(&trace.frequency_histogram(&NoCondition)),entropy(&trace.stride_histogram(&NoCondition)),
@@ -49,6 +50,7 @@ fn main() -> anyhow::Result<()> {
 	
 	dbg!("printed csv");
 	if args.len() > 3 && args[3..].iter().any(|i| i=="L"){
+		//output to linear-continuation-data.csv
 		let linear_file = File::options().append(true).create(true).open("src/histograms/linear-function-data.csv")?;
 		linear_cont_out(&args[1],trace.len(),&linear_function_continuation(&trace),linear_file)?;
 		dbg!("printed linear continuation data");

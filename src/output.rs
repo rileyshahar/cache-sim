@@ -41,10 +41,13 @@ impl Serialize for OutputCsvRow<'_> {
     }
 }
 
-/// Write a set of statistics to a csv on stdout.
+/// Write a set of statistics and stack distances to a csv on stdout.
 ///
-/// TODO: let us use generic outputs (e.x. to write to file)
+/// Writes stack distances in the form `distance:frequency` where `distance` is the stack distance in
+/// question and `frequency` is how many times it occurs. If `frequency` is `0`, the distance is omitted.
 ///
+/// Stats are recorded first, then the infinities, and then any other stack distances are last
+/// 
 /// # Errors
 /// If writing fails, for example if the output buffer is closed by the OS.
 pub fn to_csv<W: Write>(
@@ -67,7 +70,6 @@ pub fn to_csv<W: Write>(
 }
 
 struct FreqHistRow<'a, I: Item, H: std::hash::BuildHasher> {
-    // TODO: does this need to be owned
     name: &'a str,
     entropy: f64,
     histogram: &'a HashMap<I, u32, H>,
@@ -90,11 +92,10 @@ impl<I: Item, H: std::hash::BuildHasher> Serialize for FreqHistRow<'_, I, H> {
     }
 }
 
-/// Write a histogram to a row of a csv file.
+/// Write a histogram and its entropy to a row of a csv file.
 ///
-/// The order of the `items` slice determines the order in which frequencies will be written to the
-/// csv.
-///
+/// Uses the format `item:frequency` similar to `to_csv` above.
+/// 
 /// # Errors
 /// If the writing fails.
 pub fn histogram_out<I: Item, W: Write, H: std::hash::BuildHasher>(
@@ -132,6 +133,7 @@ impl Serialize for HeaderRow<'_> {
     }
 }
 
+/// Writes the header of a csv file, consisting of only strings.
 pub fn write_header<W: Write>(
     labels: &[String],
     writer: W,
