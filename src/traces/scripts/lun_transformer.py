@@ -17,6 +17,8 @@ with open(sys.argv[1], "r", encoding="utf-8") as source:
         timeStart = float(r1[0])*TIME_UNIT
         writer.writerow((r1[4], int(float(r1[0])*TIME_UNIT - timeStart), r1[2], r1[5], 1 if r1[1] == "" else r1[1]))
         for r in reader:
+            if int(float(r[0])*TIME_UNIT - timeStart) < 0:
+                r[0] = time_start/TIME_UNIT
             # Removes the LUN col and changes to correct atf format
             # also gives a cost of 1 if no other cost given
             writer.writerow((r[4], int(float(r[0])*TIME_UNIT - timeStart), r[2], r[5], 1 if r[1] == "" else r[1]))

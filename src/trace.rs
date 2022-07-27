@@ -433,7 +433,7 @@ pub fn entropy<I: Item, H: std::hash::BuildHasher>(histogram: &HashMap<I, u32, H
 
 
 //TODO: clean up these for new stride structure
-//entropy for functions, specifically additive functions
+//entropy for functions, specifically additive functions.  Calculates entropy of the strides involved
 //prefix in this case is the number of prior strides that need to be equal to the last stride
 pub fn linear_function_entropy<I: Item>(trace: &Trace<I>, prefix: usize, cont: usize) -> f64{
 	let freqs = trace.stride_histogram(&|t: &Trace<I>, i: usize| i >= prefix && 
