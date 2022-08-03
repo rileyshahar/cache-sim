@@ -39,14 +39,16 @@ fn main() -> anyhow::Result<()> {
 		continuation = 1;
 	}
 	
-	//out put to stack-distances.csv
+	let prefix: usize = args[2].parse()?;
+	
+	//output to stack-distances.csv
     to_csv(&args[1],
-    &[trace.len() as f64, trace.num_items() as f64, trace.num_strides() as f64, args[2].parse()?,
+    &[trace.len() as f64, trace.num_items(prefix) as f64, trace.num_strides(prefix) as f64, prefix as f64,
     entropy(&trace.frequency_histogram(&NoCondition)),entropy(&trace.stride_histogram(&NoCondition)),
-    trace.average_entropy(args[2].parse()?),trace.stride_entropy(args[2].parse()?),
-    exp_function_entropy(&trace,args[2].parse()?,continuation),linear_function_entropy(&trace,args[2].parse()?,continuation)],
+    trace.average_entropy(prefix),trace.stride_entropy(prefix),
+    exp_function_entropy(&trace,prefix,continuation),linear_function_entropy(&trace,prefix,continuation)],
     &stack_distances, record_file)?;
-	//csv header: Name,Trace length,Unique items,Unique strides,Prefix,Item entropy,Stride entropy,Item conditional entropy,Stride conditional entropy,Exponential function entropy,Linear Function entropy,Infinities,Stack distances
+	//csv header: Name,Trace length,Unique items (prefix length),Unique strides (prefix length),Prefix,Item entropy,Stride entropy,Item conditional entropy,Stride conditional entropy,Exponential function entropy,Linear Function entropy,Infinities,Stack distances
 	
 	dbg!("printed csv");
 	if args.len() > 3 && args[3..].iter().any(|i| i=="L"){

@@ -1,4 +1,4 @@
-#Call with python3 histogram_maker.py [filename w/ extension] [data format T/H/L] [(optional,H/L formats only) plot style L/P/C/else] [(optional) name of plot to show]
+#Call with python3 histogram_maker.py [filename w/ extension] [data format T/H/L] [(optional,H/L formats only) plot style L/P/C/G/else] [(optional) name of plot to show]
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
@@ -68,6 +68,12 @@ with open(sys.argv[2], "r", encoding="utf-8") as source:
                 plt.axvline(x=0,color='red',label="Zero")
                 margin = (max(item_list)-min(item_list))*0.02 + 1
                 plt.xlim([min(item_list) - margin,max(item_list) + margin])
+            elif len(sys.argv) > 3 and sys.argv[3] == "G":
+                points = []
+                for i in range(len(item_list)):
+                    for j in range(freq_list[i]):
+                        points.append(item_list[i])
+                plt.hist(points,bins=100)
             else:
                 plt.bar(item_list,freq_list)
             plt.title(sys.argv[2])

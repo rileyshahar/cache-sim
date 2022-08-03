@@ -266,14 +266,22 @@ impl<I: Item> Trace<I> {
         self.inner.len()
     }
     
-    /// Get the number of unique items in the trace
-	pub fn num_items(&self) -> usize {
-        self.inner.iter().unique().count()
+    /// Get the number of unique sequences of items in the trace that are exactly `length` long
+	pub fn num_items(&self, length: usize) -> usize {
+		let mut seqs = HashSet::<Vec<u64>>::new();
+        for i in 0..(self.inner.len() - length){
+			seqs.insert(self.inner[i..i+length].iter().map(|&i| i.id()).collect());
+		}
+		seqs.len()
     }
     
-    /// Get the number of unique strides in the trace
-	pub fn num_strides(&self) -> usize {
-        self.strides.iter().unique().count()
+    /// Get the number of unique sequences of strides in the trace that are exactly `length` long
+	pub fn num_strides(&self, length: usize) -> usize {
+        let mut seqs = HashSet::<Vec<i64>>::new();
+        for i in 0..(self.strides.len() - length){
+			seqs.insert(self.strides[i..i+length].to_vec());
+		}
+		seqs.len()
     }
 
     /// Check whether the trace is empty.
